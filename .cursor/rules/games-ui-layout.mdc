@@ -1,0 +1,39 @@
+---
+description: Einheitliches Layout-Muster für Spiele (Neu starten, Einstellungen, Regeln, Herausforderungen)
+globs: components/games/**/*.tsx
+alwaysApply: false
+---
+
+# Spiele-UI: Platzierungs-Muster
+
+Bei **neuen Spielen** oder beim Anpassen bestehender Spiele (z. B. Schach, Dame) mit:
+- Neu starten / Reset
+- Einstellungen (aufklappbar)
+- Regeln (z. B. „Die goldenen Regeln“)
+- Herausforderungen / Task-Cards
+
+**immer dieses Layout verwenden** (Reihenfolge von oben nach unten):
+
+1. **Infoleiste**  
+   Level/Status + Buttons „Einstellungen“ und „Neu starten“ (gleiche Zeile, flex-wrap).
+
+2. **Regeln + Herausforderungen nebeneinander**  
+   - Container: `grid gap-3 md:grid-cols-2`
+   - Links: Regeln (aufklappbar), z. B. `rounded-xl border border-border bg-muted/30 overflow-hidden`
+   - Rechts: Herausforderungen, z. B. `rounded-xl border border-border bg-card p-3`
+   - Mobile: untereinander; ab `md`: zwei Spalten (je ~50 %)
+
+3. **Einstellungen**  
+   - **Unter** Regeln und Herausforderungen (nicht darüber).
+   - Nur sichtbar wenn Einstellungen geöffnet: `{showSettings && ( ... )}`
+   - Block: `p-4 rounded-xl bg-muted/50 border border-border space-y-4`
+
+4. **Spielinhalt**  
+   - Geschlagene Figuren / Letzter Zug / Brett bzw. spielspezifischer Inhalt.
+
+**Referenz:** `components/games/dame-game.tsx` und `components/games/chess-game.tsx`.
+
+**Dialog „Neues Spiel“:**  
+Overlay z. B. `items-end sm:items-center pb-6 sm:pb-0`, damit auf Mobile der Dialog unten sitzt (nicht mittig).
+
+Details: DOCUMENTATION.md Abschnitt „4. Spiele-UI (Schach, Dame & neue Spiele)“ → „Einheitliches Layout-Muster“.

@@ -1,0 +1,200 @@
+/**
+ * SDG – Schach/Dame-Game
+ * Layout: Header, Main (Brett), Sidebar, Footer
+ */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #1a1a1e; color: #e0e0e0; }
+
+.sdg-app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr minmax(200px, 280px);
+  grid-template-areas:
+    "header header"
+    "main sidebar"
+    "footer footer";
+}
+
+.sdg-header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: #252530;
+  border-bottom: 1px solid #333;
+}
+.sdg-header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+.sdg-game-switcher { display: flex; gap: 0.5rem; }
+.sdg-game-switcher button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #333;
+  color: #e0e0e0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.sdg-game-switcher button:hover { background: #404050; }
+.sdg-game-switcher button.sdg-active { background: #4a7c9e; border-color: #5a8cad; }
+.sdg-level-bar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.sdg-level-bar span { font-size: 0.85rem; }
+.sdg-progress-wrap {
+  width: 120px;
+  height: 8px;
+  background: #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.sdg-progress-fill { height: 100%; background: #5a9c6e; border-radius: 4px; transition: width 0.2s; }
+
+.sdg-main {
+  grid-area: main;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  min-height: 0;
+}
+.sdg-board-wrap {
+  position: relative;
+  max-width: min(90vmin, 520px);
+  aspect-ratio: 1;
+}
+
+.sdg-sidebar {
+  grid-area: sidebar;
+  padding: 1rem;
+  overflow-y: auto;
+  border-left: 1px solid #333;
+  background: #222228;
+}
+.sdg-sidebar h3 { margin: 0 0 0.5rem 0; font-size: 0.95rem; }
+.sdg-task-list { list-style: none; padding: 0; margin: 0; }
+.sdg-task-list li {
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: #2a2a32;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+.sdg-hof-title { margin: 1rem 0 0.5rem 0; font-size: 0.95rem; }
+.sdg-hof-list { list-style: none; padding: 0; margin: 0; font-size: 0.8rem; color: #aaa; }
+.sdg-hof-list li { padding: 0.25rem 0; }
+.sdg-settings-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  width: 100%;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #333;
+  color: #e0e0e0;
+  cursor: pointer;
+}
+
+.sdg-footer {
+  grid-area: footer;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: #252530;
+  border-top: 1px solid #333;
+  font-size: 0.85rem;
+}
+.sdg-move-history { flex: 1; overflow-x: auto; white-space: nowrap; }
+.sdg-undo-btn {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #333;
+  color: #e0e0e0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sdg-undo-btn:hover { background: #404050; }
+.sdg-undo-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sdg-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.sdg-modal[hidden] { display: none; }
+.sdg-modal-content {
+  background: #252530;
+  padding: 1.5rem;
+  border-radius: 10px;
+  min-width: 260px;
+}
+.sdg-modal-content h2 { margin: 0 0 1rem 0; font-size: 1.1rem; }
+.sdg-setting { margin-bottom: 1rem; }
+.sdg-setting label { display: block; margin-bottom: 0.3rem; font-size: 0.9rem; }
+.sdg-setting select {
+  width: 100%;
+  padding: 0.4rem;
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #e0e0e0;
+}
+.sdg-game-over {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99;
+}
+.sdg-game-over[hidden] { display: none; }
+.sdg-game-over-content {
+  background: #252530;
+  padding: 1.5rem 2rem;
+  border-radius: 10px;
+  text-align: center;
+}
+.sdg-game-over-content p { margin: 0 0 1rem 0; font-size: 1.1rem; }
+.sdg-board-wrap.sdg-shake {
+  animation: sdg-shake 0.4s ease-out;
+}
+@keyframes sdg-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  60% { transform: translate(-3px, 1px); }
+  80% { transform: translate(3px, -1px); }
+}
+
+.sdg-modal-close {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  width: 100%;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #333;
+  color: #e0e0e0;
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .sdg-app {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "main"
+      "sidebar"
+      "footer";
+  }
+  .sdg-sidebar { border-left: none; border-top: 1px solid #333; }
+}

@@ -1,0 +1,23 @@
+---
+description: Bei App-Updates immer versionierten Backup erstellen
+globs: 
+alwaysApply: true
+---
+
+# Update = Bump + Backup
+
+Wenn ein **Update** (Version erhöhen) gemacht wird:
+
+1. **Immer gleichzeitig ein versioniertes Backup** des wichtigsten Codes erstellen.
+2. **Bezeichnung:** Backup mit Version und Datum (z. B. `backup-v2.6.0.4-2026-02-22`).
+
+**Empfohlener Befehl:** `npm run version:update`  
+→ führt nacheinander aus: Build-Nummer erhöhen + Backup erstellen.
+
+**Manuell:**
+- `npm run version:bump` (erhöht Build)
+- `npm run version:backup` (erstellt Ordner unter `backups/`)
+
+**Was gesichert wird:** Das Wichtigste der App: Seiten (`app/`), Komponenten (`components/`), `lib/`, `types/`, Context, Hooks, `public/`, Konfiguration, Skripte, `DOCUMENTATION.md`. Keine node_modules/Build-Ordner.
+
+Details: siehe DOCUMENTATION.md Abschnitt „Bei jedem Update: immer mit Backup“.

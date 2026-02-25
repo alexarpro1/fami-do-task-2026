@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Schach/Dame-Game (SDG)</title>
+  <link rel="stylesheet" href="css/themes.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/board.css" />
+</head>
+<body class="sdg-app theme-sommer sdg-figure-classic" id="sdg-root">
+  <header class="sdg-header">
+    <h1 id="sdg-title">Schach/Dame-Game</h1>
+    <div class="sdg-game-switcher">
+      <button type="button" id="sdg-btn-dame" aria-pressed="true">Dame</button>
+      <button type="button" id="sdg-btn-schach" aria-pressed="false">Schach</button>
+    </div>
+    <div class="sdg-level-bar">
+      <span id="sdg-level-text">Level 1</span>
+      <div class="sdg-progress-wrap">
+        <div class="sdg-progress-fill" id="sdg-progress-fill" style="width: 0%;"></div>
+      </div>
+    </div>
+  </header>
+  <main class="sdg-main">
+    <div class="sdg-board-wrap" id="sdg-board-wrap">
+      <div class="sdg-board" id="sdg-board" role="grid" aria-label="Spielbrett"></div>
+    </div>
+  </main>
+  <aside class="sdg-sidebar">
+    <h3 id="sdg-sidebar-title">Herausforderungen</h3>
+    <ul class="sdg-task-list" id="sdg-task-list"></ul>
+    <h3 class="sdg-hof-title">Rekorde</h3>
+    <ul class="sdg-hof-list" id="sdg-hof-list"></ul>
+    <button type="button" class="sdg-settings-btn" id="sdg-settings-btn">Einstellungen</button>
+  </aside>
+  <div class="sdg-game-over" id="sdg-game-over" hidden>
+    <div class="sdg-game-over-content">
+      <p id="sdg-game-over-text"></p>
+      <button type="button" id="sdg-game-over-close">Neues Spiel</button>
+    </div>
+  </div>
+  <div class="sdg-modal" id="sdg-settings-modal" role="dialog" aria-label="Einstellungen" hidden>
+    <div class="sdg-modal-content">
+      <h2>Einstellungen</h2>
+      <div class="sdg-setting">
+        <label>Thema</label>
+        <select id="sdg-setting-theme">
+          <option value="sommer">Sommer-Erinnerung</option>
+          <option value="wald">Wald-Idyll</option>
+          <option value="abend">Abend-Dämmerung</option>
+        </select>
+      </div>
+      <div class="sdg-setting">
+        <label>Figuren</label>
+        <select id="sdg-setting-figure">
+          <option value="classic">Klassisch</option>
+          <option value="modern">Modern</option>
+          <option value="nature">Natur</option>
+        </select>
+      </div>
+      <div class="sdg-setting">
+        <label>Schwierigkeit (KI)</label>
+        <select id="sdg-setting-difficulty">
+          <option value="leicht">Leicht</option>
+          <option value="mittel">Mittel</option>
+          <option value="schwer">Schwer</option>
+        </select>
+      </div>
+      <button type="button" class="sdg-modal-close" id="sdg-settings-close">Schließen</button>
+    </div>
+  </div>
+  <footer class="sdg-footer">
+    <div class="sdg-move-history" id="sdg-move-history" aria-live="polite"></div>
+    <button type="button" class="sdg-undo-btn" id="sdg-undo-btn">Zug rückgängig</button>
+  </footer>
+
+  <script src="js/coord.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/tasks.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/game-dame.js"></script>
+  <script src="js/game-chess.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/board.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+{
+  "name": "FamiDo Task - Familien Belohnungs-App",
+  "short_name": "FamiDo Task",
+  "description": "Belohnungssystem für Familien mit Aufgaben, Regeln und Belohnungen",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "categories": ["education", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Aufgaben",
+      "url": "/tasks",
+      "description": "Aufgaben ansehen"
+    },
+    {
+      "name": "Shop",
+      "url": "/rewards",
+      "description": "Belohnungen einlösen"
+    },
+    {
+      "name": "Profil",
+      "url": "/profile",
+      "description": "Mein Profil"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/placeholder.jpg",
+      "sizes": "1170x2532",
+      "type": "image/jpeg",
+      "form_factor": "narrow"
+    }
+  ]
+}
