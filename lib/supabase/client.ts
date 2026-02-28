@@ -14,8 +14,7 @@ export function createClient() {
     console.warn(
       "[SUPABASE] Missing environment variables. App will use local storage instead. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY) to enable cloud sync.",
     )
-    // Mock-Client inkl. Auth (für CloudSyncPanel/FamilyCloudLogin ohne Crash)
-    const noSession = { data: { session: null }, error: null }
+    // Mock-Client mit vollständiger Kette für sync_v2 (upsert + select/eq/order/limit/maybeSingle)
     return {
       from: () => ({
         insert: () => ({ select: () => Promise.resolve(notConfigured) }),
@@ -31,17 +30,6 @@ export function createClient() {
         upsert: () => Promise.resolve(notConfigured),
         delete: () => ({ eq: () => Promise.resolve(notConfigured) }),
       }),
-      auth: {
-        getSession: () => Promise.resolve(noSession),
-        onAuthStateChange: (_: (e: string, s: unknown) => void) => ({
-          data: { subscription: { unsubscribe: () => {} } },
-        }),
-        signInWithPassword: () =>
-          Promise.resolve({ data: null, error: { message: "Supabase nicht konfiguriert" } }),
-        signUp: () =>
-          Promise.resolve({ data: null, error: { message: "Supabase nicht konfiguriert" } }),
-        signOut: () => Promise.resolve({ error: null }),
-      },
     } as any
   }
 

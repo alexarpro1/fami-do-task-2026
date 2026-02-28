@@ -1,9 +1,7 @@
 "use client"
 
 import { useFamily } from "@/context/family-context"
-import { useSelectedChild } from "@/hooks/useChildren"
 import { ChildAvatar } from "./child-avatar"
-import { ChildPoints } from "@/components/points/child-points"
 import { X, UserPlus } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -14,8 +12,7 @@ interface ChildSelectorModalProps {
 }
 
 export function ChildSelectorModal({ open, onClose }: ChildSelectorModalProps) {
-  const { dispatch } = useFamily()
-  const { children, selectedChildId } = useSelectedChild()
+  const { state, dispatch, selectedChild } = useFamily()
 
   if (!open) return null
 
@@ -42,23 +39,23 @@ export function ChildSelectorModal({ open, onClose }: ChildSelectorModalProps) {
         <h2 className="font-[var(--font-fredoka)] text-xl font-bold text-foreground mb-6 text-center">Kind wechseln</h2>
 
         <div className="grid grid-cols-3 gap-4 mb-6">
-          {children.map((child) => (
+          {(state.children || []).map((child) => (
             <button
               key={child.id}
               onClick={() => handleSelectChild(child.id)}
               className={cn(
                 "flex flex-col items-center p-3 rounded-2xl transition-all",
-                selectedChildId === child.id ? "bg-primary/10 scale-105" : "hover:bg-secondary",
+                selectedChild?.id === child.id ? "bg-primary/10 scale-105" : "hover:bg-secondary",
               )}
             >
               <ChildAvatar
                 avatar={child.avatar}
                 color={child.color}
                 size="lg"
-                selected={selectedChildId === child.id}
+                selected={selectedChild?.id === child.id}
               />
               <span className="font-medium text-foreground mt-2 text-sm">{child.name}</span>
-              <ChildPoints childId={child.id} labelOnly showLoading className="text-xs text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">{child.points} Punkte</span>
             </button>
           ))}
         </div>

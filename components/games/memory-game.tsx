@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { applyXpAndGetBonuses, getLevelProgress, getNextBonusLevel } from "@/lib/game-progression"
 
 const EMOJIS = ["🌟", "🎮", "🎯", "⭐", "🔥", "💎", "🎁", "🏆"]
 const PAIR_OPTIONS = [4, 6, 8] as const
@@ -10,6 +11,7 @@ const POINTS_WIN = 20
 const MEMORY_STORAGE_KEY = "famiapp-memory-progress"
 const MEMORY_XP_WIN = 25
 const MEMORY_XP_PER_LEVEL = 100
+const MEMORY_GAME_ID = "memory" as const
 
 interface MemoryGameProps {
   onAwardPoints: (points: number, message: string) => void
@@ -34,10 +36,14 @@ export function MemoryGame({ onAwardPoints, onClose }: MemoryGameProps) {
   const [level, setLevel] = useState(1)
   const [xp, setXp] = useState(0)
   const [gameStarted, setGameStarted] = useState(false)
+  const bonusClaimedRef = useRef<number[]>([])
 
   const solvedCount = useMemo(() => cards.filter((c) => c.solved).length, [cards])
   const allSolved = solvedCount === cards.length
   const totalPairs = cards.length / 2
+
+  const { xpInCurrentLevel, xpForNextLevel, nextLevel } = getLevelProgress(xp, MEMORY_XP_PER_LEVEL)
+  const nextBonusLevel = getNextBonusLevel(MEMORY_GAME_ID, level)
 
   const startNewGame = (pairs: number) => {
     setPairCount(pairs)
@@ -54,9 +60,13 @@ export function MemoryGame({ onAwardPoints, onClose }: MemoryGameProps) {
     try {
       const raw = localStorage.getItem(MEMORY_STORAGE_KEY)
       if (raw) {
-        const { level: l = 1, xp: x = 0 } = JSON.parse(raw)
-        setLevel(l)
-        setXp(x)
+        const parsed = JSON.parse(raw)
+        const { level: l = 1, xp: x = 0, bonusClaimedLevels } = parsed
+        setLevel(typeof l === "number" && l > 0 ? l : 1)
+        setXp(typeof x === "number" && x >= 0 ? x : 0)
+        if (Array.isArray(bonusClaimedLevels)) {
+          bonusClaimedRef.current = bonusClaimedLevels.filter((n: unknown) => typeof n === "number" && Number.isFinite(n))
+        }
       }
     } catch {
       // ignore
@@ -67,16 +77,25 @@ export function MemoryGame({ onAwardPoints, onClose }: MemoryGameProps) {
     if (allSolved && !hasAwarded) {
       setHasAwarded(true)
       onAwardPoints(POINTS_WIN, "Memory gewonnen! 🎉", "Memory: Gewonnen")
-      setXp((prev) => {
-        const next = prev + MEMORY_XP_WIN
-        const newLevel = Math.max(1, Math.floor(next / MEMORY_XP_PER_LEVEL) + 1)
+      setXp((prevXp) => {
+        const { xp: nextXp, level: newLevel, bonusClaimedLevels, bonusCoins, newBonusLevels } = applyXpAndGetBonuses(
+          MEMORY_GAME_ID,
+          { xp: prevXp, level, bonusClaimedLevels: bonusClaimedRef.current },
+          MEMORY_XP_WIN,
+          MEMORY_XP_PER_LEVEL,
+        )
+        bonusClaimedRef.current = bonusClaimedLevels
         setLevel(newLevel)
         try {
-          localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify({ level: newLevel, xp: next }))
+          localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify({ level: newLevel, xp: nextXp, bonusClaimedLevels }))
         } catch {
           // ignore
         }
-        return next
+        if (bonusCoins > 0 && newBonusLevels.length > 0) {
+          const reachedText = newBonusLevels.length === 1 ? `Level ${newBonusLevels[0]}` : `Level ${newBonusLevels.join(", ")}`
+          onAwardPoints(bonusCoins, `Bonus: ${reachedText} erreicht! +${bonusCoins} Goldmünzen`)
+        }
+        return nextXp
       })
     }
   }, [allSolved, hasAwarded, onAwardPoints])
@@ -139,8 +158,15 @@ export function MemoryGame({ onAwardPoints, onClose }: MemoryGameProps) {
             </Button>
           ))}
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Level {level}</span>
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between">
+            <span>Level {level}</span>
+            {nextBonusLevel && nextBonusLevel > level && <span>Nächster Bonus bei Level {nextBonusLevel}</span>}
+          </div>
+          <div>
+            XP {xpInCurrentLevel}/{xpForNextLevel || 0}
+            {nextLevel ? ` bis Level ${nextLevel}` : " · Max-Level erreicht"}
+          </div>
         </div>
         <Button variant="outline" className="w-full" onClick={onClose}>
           Beenden
@@ -158,6 +184,13 @@ export function MemoryGame({ onAwardPoints, onClose }: MemoryGameProps) {
         <span className="text-xs font-medium text-muted-foreground shrink-0">
           Level {level}
         </span>
+      </div>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>
+          XP {xpInCurrentLevel}/{xpForNextLevel || 0}
+          {nextLevel ? ` bis Level ${nextLevel}` : " · Max-Level erreicht"}
+        </span>
+        {nextBonusLevel && nextBonusLevel > level && <span>Nächster Bonus bei Level {nextBonusLevel}</span>}
       </div>
       <div className={cn("grid gap-3", pairCount === 6 ? "grid-cols-3" : "grid-cols-4")}>
         {cards.map((card, i) => (

@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { applyXpAndGetBonuses, getLevelProgress, getNextBonusLevel } from "@/lib/game-progression"
 
 const TARGET_TAPS = 20
 const POINTS_FAST = 15
@@ -16,6 +17,7 @@ const TAP_XP_FAST = 15
 const TAP_XP_MED = 10
 const TAP_XP_SLOW = 5
 const TAP_XP_PER_LEVEL = 100
+const TAP_GAME_ID = "tap" as const
 
 interface TapGameProps {
   onAwardPoints: (points: number, message: string) => void
@@ -32,6 +34,10 @@ export function TapGame({ onAwardPoints, onClose }: TapGameProps) {
   const [lastWasRecord, setLastWasRecord] = useState(false)
   const startTime = useRef<number | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const bonusClaimedRef = useRef<number[]>([])
+
+  const { xpInCurrentLevel, xpForNextLevel, nextLevel } = getLevelProgress(xp, TAP_XP_PER_LEVEL)
+  const nextBonusLevel = getNextBonusLevel(TAP_GAME_ID, level)
 
   useEffect(() => {
     try {
@@ -49,9 +55,13 @@ export function TapGame({ onAwardPoints, onClose }: TapGameProps) {
     try {
       const raw = localStorage.getItem(TAP_STORAGE_KEY)
       if (raw) {
-        const { level: l = 1, xp: x = 0 } = JSON.parse(raw)
-        setLevel(l)
-        setXp(x)
+        const parsed = JSON.parse(raw)
+        const { level: l = 1, xp: x = 0, bonusClaimedLevels } = parsed
+        setLevel(typeof l === "number" && l > 0 ? l : 1)
+        setXp(typeof x === "number" && x >= 0 ? x : 0)
+        if (Array.isArray(bonusClaimedLevels)) {
+          bonusClaimedRef.current = bonusClaimedLevels.filter((n: unknown) => typeof n === "number" && Number.isFinite(n))
+        }
       }
     } catch {
       // ignore
@@ -89,14 +99,23 @@ export function TapGame({ onAwardPoints, onClose }: TapGameProps) {
         sec <= TIME_FAST ? "Megaschnell! ⚡" : sec <= TIME_MED ? "Schnell! 👍" : "Geschafft! 🎉",
         "Tipp-Challenge: Geschafft",
       )
-      setXp((prev) => {
-        const nextXp = prev + addXp
-        const newLevel = Math.max(1, Math.floor(nextXp / TAP_XP_PER_LEVEL) + 1)
+      setXp((prevXp) => {
+        const { xp: nextXp, level: newLevel, bonusClaimedLevels, bonusCoins, newBonusLevels } = applyXpAndGetBonuses(
+          TAP_GAME_ID,
+          { xp: prevXp, level, bonusClaimedLevels: bonusClaimedRef.current },
+          addXp,
+          TAP_XP_PER_LEVEL,
+        )
+        bonusClaimedRef.current = bonusClaimedLevels
         setLevel(newLevel)
         try {
-          localStorage.setItem(TAP_STORAGE_KEY, JSON.stringify({ level: newLevel, xp: nextXp }))
+          localStorage.setItem(TAP_STORAGE_KEY, JSON.stringify({ level: newLevel, xp: nextXp, bonusClaimedLevels }))
         } catch {
           // ignore
+        }
+        if (bonusCoins > 0 && newBonusLevels.length > 0) {
+          const reachedText = newBonusLevels.length === 1 ? `Level ${newBonusLevels[0]}` : `Level ${newBonusLevels.join(", ")}`
+          onAwardPoints(bonusCoins, `Bonus: ${reachedText} erreicht! +${bonusCoins} Goldmünzen`)
         }
         return nextXp
       })
@@ -126,6 +145,13 @@ export function TapGame({ onAwardPoints, onClose }: TapGameProps) {
             <span className="text-xs font-medium text-muted-foreground shrink-0">
               Level {level}
             </span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              XP {xpInCurrentLevel}/{xpForNextLevel || 0}
+              {nextLevel ? ` bis Level ${nextLevel}` : " · Max-Level erreicht"}
+            </span>
+            {nextBonusLevel && nextBonusLevel > level && <span>Nächster Bonus bei Level {nextBonusLevel}</span>}
           </div>
           {bestSeconds != null && (
             <p className="text-xs text-muted-foreground">Deine Bestzeit: {bestSeconds} Sekunden</p>

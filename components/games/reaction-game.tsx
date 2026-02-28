@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { applyXpAndGetBonuses, getLevelProgress, getNextBonusLevel } from "@/lib/game-progression"
 
 type Phase = "wait" | "ready" | "green" | "too-early" | "done"
 
@@ -14,6 +15,7 @@ const REACTION_XP_FAST = 15
 const REACTION_XP_MED = 10
 const REACTION_XP_SLOW = 5
 const REACTION_XP_PER_LEVEL = 100
+const REACTION_GAME_ID = "reaction" as const
 
 interface ReactionGameProps {
   onAwardPoints: (points: number, message: string) => void
@@ -29,6 +31,10 @@ export function ReactionGame({ onAwardPoints, onClose }: ReactionGameProps) {
   const [level, setLevel] = useState(1)
   const [xp, setXp] = useState(0)
   const [bestMsThisSession, setBestMsThisSession] = useState<number | null>(null)
+  const bonusClaimedRef = useRef<number[]>([])
+
+  const { xpInCurrentLevel, xpForNextLevel, nextLevel } = getLevelProgress(xp, REACTION_XP_PER_LEVEL)
+  const nextBonusLevel = getNextBonusLevel(REACTION_GAME_ID, level)
 
   const startRound = useCallback(() => {
     setPhase("wait")
@@ -62,9 +68,13 @@ export function ReactionGame({ onAwardPoints, onClose }: ReactionGameProps) {
     try {
       const raw = localStorage.getItem(REACTION_STORAGE_KEY)
       if (raw) {
-        const { level: l = 1, xp: x = 0 } = JSON.parse(raw)
-        setLevel(l)
-        setXp(x)
+        const parsed = JSON.parse(raw)
+        const { level: l = 1, xp: x = 0, bonusClaimedLevels } = parsed
+        setLevel(typeof l === "number" && l > 0 ? l : 1)
+        setXp(typeof x === "number" && x >= 0 ? x : 0)
+        if (Array.isArray(bonusClaimedLevels)) {
+          bonusClaimedRef.current = bonusClaimedLevels.filter((n: unknown) => typeof n === "number" && Number.isFinite(n))
+        }
       }
     } catch {
       // ignore
@@ -84,17 +94,26 @@ export function ReactionGame({ onAwardPoints, onClose }: ReactionGameProps) {
         points = POINTS_MED
         addXp = REACTION_XP_MED
       }
-      onAwardPoints(points, ms < 300 ? "Super schnell! ⚡" : ms < 500 ? "Gut! 👍" : "Geschafft! 🎉", "Reaktionsspiel: Runde")
-      setXp((prev) => {
-        const next = prev + addXp
-        const newLevel = Math.max(1, Math.floor(next / REACTION_XP_PER_LEVEL) + 1)
+      onAwardPoints(points, ms < 300 ? "Super schnell! ⚡" : ms < 500 ? "Gut! 👍" : "Geschafft! 🎉")
+      setXp((prevXp) => {
+        const { xp: nextXp, level: newLevel, bonusClaimedLevels, bonusCoins, newBonusLevels } = applyXpAndGetBonuses(
+          REACTION_GAME_ID,
+          { xp: prevXp, level, bonusClaimedLevels: bonusClaimedRef.current },
+          addXp,
+          REACTION_XP_PER_LEVEL,
+        )
+        bonusClaimedRef.current = bonusClaimedLevels
         setLevel(newLevel)
         try {
-          localStorage.setItem(REACTION_STORAGE_KEY, JSON.stringify({ level: newLevel, xp: next }))
+          localStorage.setItem(REACTION_STORAGE_KEY, JSON.stringify({ level: newLevel, xp: nextXp, bonusClaimedLevels }))
         } catch {
           // ignore
         }
-        return next
+        if (bonusCoins > 0 && newBonusLevels.length > 0) {
+          const reachedText = newBonusLevels.length === 1 ? `Level ${newBonusLevels[0]}` : `Level ${newBonusLevels.join(", ")}`
+          onAwardPoints(bonusCoins, `Bonus: ${reachedText} erreicht! +${bonusCoins} Goldmünzen`)
+        }
+        return nextXp
       })
       setBestMsThisSession((prev) => (prev == null || ms < prev ? ms : prev))
       setPhase("done")
@@ -120,6 +139,15 @@ export function ReactionGame({ onAwardPoints, onClose }: ReactionGameProps) {
         <span className="text-xs font-medium text-muted-foreground shrink-0">
           Level {level}
         </span>
+      </div>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>
+          XP {xpInCurrentLevel}/{xpForNextLevel || 0}
+          {nextLevel ? ` bis Level ${nextLevel}` : " · Max-Level erreicht"}
+        </span>
+        {nextBonusLevel && nextBonusLevel > level && (
+          <span>Nächster Bonus bei Level {nextBonusLevel}</span>
+        )}
       </div>
       {phase === "done" ? (
         <div

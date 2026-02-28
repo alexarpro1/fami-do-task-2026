@@ -203,6 +203,74 @@ export function getPlatform(): {
 }
 
 /**
+ * Speicher-Schlüssel für die individuelle Geräte-Info (Capacitor App + Device).
+ * Getrennt von der Cloud-Sync-Geräte-ID (famiapp_device_id / famiapp_sync_v2_device_id).
+ */
+export const INDIVIDUAL_DEVICE_INFO_KEY = "famiapp_individual_device_info"
+
+export interface IndividualDeviceInfoPayload {
+  appInfo: Record<string, unknown>
+  deviceInfo: Record<string, unknown>
+  savedAt: string
+}
+
+/**
+ * Speichert die individuelle Geräte-Info (Capacitor) persistent.
+ * Native: Capacitor Preferences, Web: localStorage.
+ * Hat nichts mit der Cloud-Sync-Geräte-ID zu tun.
+ */
+export async function saveIndividualDeviceInfo(payload: {
+  appInfo: Record<string, unknown>
+  deviceInfo: Record<string, unknown>
+}): Promise<void> {
+  if (typeof window === "undefined") return
+  const data: IndividualDeviceInfoPayload = {
+    appInfo: payload.appInfo,
+    deviceInfo: payload.deviceInfo,
+    savedAt: new Date().toISOString(),
+  }
+  const json = JSON.stringify(data)
+  try {
+    localStorage.setItem(INDIVIDUAL_DEVICE_INFO_KEY, json)
+  } catch (e) {
+    console.error("[device] saveIndividualDeviceInfo localStorage failed:", e)
+  }
+  if (isNativeApp()) {
+    try {
+      const { Preferences } = await import("@capacitor/preferences")
+      await Preferences.set({ key: INDIVIDUAL_DEVICE_INFO_KEY, value: json })
+    } catch (e) {
+      console.error("[device] saveIndividualDeviceInfo Preferences failed:", e)
+    }
+  }
+}
+
+/**
+ * Liest die gespeicherte individuelle Geräte-Info (Capacitor).
+ * Native: aus Preferences, Web: aus localStorage.
+ */
+export async function getIndividualDeviceInfo(): Promise<IndividualDeviceInfoPayload | null> {
+  if (typeof window === "undefined") return null
+  let json: string | null = null
+  if (isNativeApp()) {
+    try {
+      const { Preferences } = await import("@capacitor/preferences")
+      const result = await Preferences.get({ key: INDIVIDUAL_DEVICE_INFO_KEY })
+      json = result.value
+    } catch {
+      // fallback to localStorage
+    }
+  }
+  if (json === null) json = localStorage.getItem(INDIVIDUAL_DEVICE_INFO_KEY)
+  if (!json) return null
+  try {
+    return JSON.parse(json) as IndividualDeviceInfoPayload
+  } catch {
+    return null
+  }
+}
+
+/**
  * Get hardware device ID with UUID fallback
  * Uses Capacitor Device plugin for native hardware ID
  * Falls back to generated UUID for web or if hardware ID unavailable

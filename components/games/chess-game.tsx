@@ -31,6 +31,7 @@ import { ChessPieceModern } from "@/components/games/chess-pieces-modern"
 import { ChessPiecePremium } from "@/components/games/chess-pieces-premium"
 import { cn } from "@/lib/utils"
 import { Settings2, ZoomIn, ZoomOut, RotateCcw, Users, Cpu, Trophy, BookOpen, ChevronDown, ChevronUp } from "lucide-react"
+import { applyXpAndGetBonuses, getLevelProgress, getNextBonusLevel } from "@/lib/game-progression"
 
 const POINTS_WIN = 30
 const POINTS_DRAW = 10
@@ -39,6 +40,7 @@ const CHESS_PROGRESS_KEY = "famiapp-chess-progress"
 const CHESS_XP_WIN = 30
 const CHESS_XP_DRAW = 10
 const CHESS_XP_PER_LEVEL = 100
+const CHESS_GAME_ID = "chess" as const
 
 const CHESS_GOLDEN_RULES = [
   "Bauern ziehen ein Feld vorwärts (oder zwei vom Start), schlagen diagonal.",
@@ -401,8 +403,12 @@ export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
   const [undoStack, setUndoStack] = useState<ChessUndoState[]>([])
   const prevTurnRef = useRef<Color | null>(null)
   const skipNextPushRef = useRef(false)
+  const chessBonusClaimedRef = useRef<number[]>([])
 
   const design = CHESS_DESIGNS.find((d) => d.id === designId) ?? CHESS_DESIGNS[0]
+
+  const { xpInCurrentLevel, xpForNextLevel, nextLevel } = getLevelProgress(chessXp, CHESS_XP_PER_LEVEL)
+  const nextBonusLevel = getNextBonusLevel(CHESS_GAME_ID, chessLevel)
 
   // Im KI-Modus: Zustand zu Beginn jedes menschlichen Zugs für „Zug zurück“ speichern
   useEffect(() => {
@@ -457,9 +463,13 @@ export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
     try {
       const raw = localStorage.getItem(CHESS_PROGRESS_KEY)
       if (raw) {
-        const { level = 1, xp = 0 } = JSON.parse(raw)
-        setChessLevel(level)
-        setChessXp(xp)
+        const parsed = JSON.parse(raw)
+        const { level = 1, xp = 0, bonusClaimedLevels } = parsed
+        setChessLevel(typeof level === "number" && level > 0 ? level : 1)
+        setChessXp(typeof xp === "number" && xp >= 0 ? xp : 0)
+        if (Array.isArray(bonusClaimedLevels)) {
+          chessBonusClaimedRef.current = bonusClaimedLevels.filter((n: unknown) => typeof n === "number" && Number.isFinite(n))
+        }
       }
     } catch {
       // ignore
@@ -589,14 +599,23 @@ export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
     const draw = result === "stalemate"
     const addXp = win ? CHESS_XP_WIN : draw ? CHESS_XP_DRAW : 0
     if (addXp <= 0) return
-    const next = chessXp + addXp
-    const level = Math.max(1, Math.floor(next / CHESS_XP_PER_LEVEL) + 1)
-    setChessXp(next)
-    setChessLevel(level)
+    const { xp: nextXp, level: newLevel, bonusClaimedLevels, bonusCoins, newBonusLevels } = applyXpAndGetBonuses(
+      CHESS_GAME_ID,
+      { xp: chessXp, level: chessLevel, bonusClaimedLevels: chessBonusClaimedRef.current },
+      addXp,
+      CHESS_XP_PER_LEVEL,
+    )
+    chessBonusClaimedRef.current = bonusClaimedLevels
+    setChessXp(nextXp)
+    setChessLevel(newLevel)
     try {
-      localStorage.setItem(CHESS_PROGRESS_KEY, JSON.stringify({ level, xp: next }))
+      localStorage.setItem(CHESS_PROGRESS_KEY, JSON.stringify({ level: newLevel, xp: nextXp, bonusClaimedLevels }))
     } catch {
       // ignore
+    }
+    if (bonusCoins > 0 && newBonusLevels.length > 0) {
+      const reachedText = newBonusLevels.length === 1 ? `Level ${newBonusLevels[0]}` : `Level ${newBonusLevels.join(", ")}`
+      onAwardPoints(bonusCoins, `Bonus: ${reachedText} erreicht! +${bonusCoins} Goldmünzen`)
     }
   }, [result, turn, gameMode, chessXp, chessXpAwarded])
 
@@ -801,9 +820,16 @@ export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
             {chessLevel >= 16 && chessLevel <= 30 && " (Meister)"}
             {chessLevel > 30 && " (Endlos)"}
           </span>
-          <p className="text-sm text-muted-foreground">
-            Du spielst <strong>Weiß</strong> (unten). Sieg = +{POINTS_WIN} Goldmünzen, Patt = +{POINTS_DRAW} Goldmünzen.
-          </p>
+          <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+            <p>
+              Du spielst <strong>Weiß</strong> (unten). Sieg = +{POINTS_WIN} Goldmünzen, Patt = +{POINTS_DRAW} Goldmünzen.
+            </p>
+            <p>
+              XP {xpInCurrentLevel}/{xpForNextLevel || 0}
+              {nextLevel ? ` bis Level ${nextLevel}` : " · Max-Level erreicht"}
+              {nextBonusLevel && nextBonusLevel > chessLevel && ` · Nächster Bonus bei Level ${nextBonusLevel}`}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button

@@ -94,7 +94,30 @@ export async function fetchCoordsFromCity(city: string): Promise<{ lat: number; 
   return { lat: first.latitude, lon: first.longitude, name: first.name }
 }
 
-/** Browser-GPS (nur im Client) */
+/**
+ * Aktuelle Position (Capacitor Geolocation mit Fallback auf Browser-API).
+ * Für Wetter und optional Gerätestandort (z. B. useSyncSession).
+ */
+export async function getCurrentLocation(): Promise<{ lat: number; lon: number }> {
+  if (typeof window === "undefined") throw new Error("Geolocation nur im Client verfügbar")
+
+  try {
+    const { Geolocation } = await import("@capacitor/geolocation")
+    const position = await Geolocation.getCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 300000,
+    })
+    return {
+      lat: position.coords.latitude,
+      lon: position.coords.longitude,
+    }
+  } catch {
+    return getBrowserLocation()
+  }
+}
+
+/** Browser-GPS-Fallback (nur im Client) */
 export function getBrowserLocation(): Promise<{ lat: number; lon: number }> {
   return new Promise((resolve, reject) => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {

@@ -97,6 +97,4 @@ npm install @powersync/react
 2. **Sync Rules** im PowerSync-Dashboard definieren (welche Tabellen/Spalten synchronisiert werden).
 3. **Supabase-Tabelle `tasks`** anlegen (Spalten an `lib/db/schema.ts` anpassen, ggf. mit Migration).
 4. ~~PowerSync-Datenbank instanziieren~~ – erledigt in Phase 2: `setupPowerSync()` + `PowerSyncProvider` in `app/layout.tsx`.
-5. **Phase 3 – Data Access Layer:** `hooks/useTasks.ts` liefert `{ tasks, isLoading, addTask, toggleTaskStatus, deleteTask }`. Live-Query per `db.watch()`, CRUD per `db.execute()`. In Komponenten: `const { tasks, addTask, toggleTaskStatus, deleteTask } = useTasks()` – keine rohen SQL-Befehle nötig.
-
-6. **Phase 4 – Cloud-Sync-Panel:** `hooks/useSyncStatus.ts` liefert `connected`, `connecting`, `downloading`, `uploading`, `lastSyncedAt`, `reconnect()`. `components/CloudSyncPanel.tsx` zeigt den Status (Synchron / Offline / Verbinde… / Lade …) und einen Button „Jetzt synchronisieren“. Eingebunden in Admin → Einstellungen → **Cloud-Sync** (aufklappbare Sektion).
+5. UI schrittweise von lokalem State (z. B. Context) auf Lesen/Schreiben über die PowerSync-DB umstellen (z. B. `usePowerSync()` → `db.getAll()`, `db.watch()`).

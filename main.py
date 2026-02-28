@@ -8,7 +8,7 @@ load_dotenv()
 
 # Fetch variables
 USER = os.getenv("postgres")
-PASSWORD = os.getenv("DB password: MhEEmaXRMC6vf0ov/")
+PASSWORD = os.getenv("DB password: MhEEmaXRMC6vf0ov ")
 HOST = os.getenv("db.jwyrnfhemmnjrupavguv.supabase.co")
 PORT = os.getenv("5432")
 DBNAME = os.getenv("postgres")

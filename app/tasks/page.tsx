@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { useFamily } from "@/context/family-context"
-import { useTodayPointsForChild } from "@/hooks/useCompletions"
 import { TaskList } from "@/components/task/task-list"
 import { CategoryTabs } from "@/components/task/category-tabs"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -13,8 +12,7 @@ import type { TaskCategory } from "@/types"
 import { DAYS } from "@/lib/constants"
 
 export default function TasksPage() {
-  const { selectedChild } = useFamily()
-  const { pointsToday: totalPointsToday, countToday: todayCompletionsCount, isLoading: todayLoading } = useTodayPointsForChild(selectedChild?.id ?? null)
+  const { selectedChild, state, getTodayCompletionsForChild } = useFamily()
   const [selectedCategory, setSelectedCategory] = useState<TaskCategory | "all">("all")
 
   if (!selectedChild) {
@@ -34,11 +32,16 @@ export default function TasksPage() {
     )
   }
 
+  // Get current day info
   const today = new Date()
   const dayIndex = today.getDay()
   const dayMap = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
   const currentDay = dayMap[dayIndex]
   const dayLabel = DAYS.find((d) => d.key === currentDay)?.full || "Heute"
+
+  // Calculate today's stats
+  const todayCompletions = getTodayCompletionsForChild(selectedChild.id)
+  const totalPointsToday = todayCompletions.reduce((sum, tc) => sum + tc.pointsEarned, 0)
 
   return (
     <AppShell>
@@ -59,12 +62,10 @@ export default function TasksPage() {
           </div>
           <div className="flex-1">
             <p className="font-semibold text-foreground">{selectedChild.name}</p>
-            <p className="text-sm text-muted-foreground">
-              Heute: +{todayLoading ? "…" : totalPointsToday} Punkte verdient
-            </p>
+            <p className="text-sm text-muted-foreground">Heute: +{totalPointsToday} Punkte verdient</p>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-foreground">{todayLoading ? "…" : todayCompletionsCount}</p>
+            <p className="text-2xl font-bold text-foreground">{todayCompletions.length}</p>
             <p className="text-xs text-muted-foreground">Aufgaben erledigt</p>
           </div>
         </div>

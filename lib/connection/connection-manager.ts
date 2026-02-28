@@ -10,6 +10,7 @@ import type {
 } from "../../types/connection"
 import { DEFAULT_CONNECTION_CONFIG } from "../../types/connection"
 import { useConnectionStore } from "./connection-store"
+import { getNetworkStatus, addConnectionListener } from "@/lib/network"
 
 const LOG_PREFIX = "[ConnectionManager]"
 
@@ -21,6 +22,7 @@ export class ConnectionManager {
   private failedPingCount = 0
   private localStableStart: number | null = null
   private stopped = false
+  private removeNetworkListener: (() => void) | null = null
 
   constructor(
     transport: ConnectionTransport,
@@ -30,10 +32,24 @@ export class ConnectionManager {
     this.config = { ...DEFAULT_CONNECTION_CONFIG, ...config }
   }
 
-  /** Startet den Manager: versucht zuerst den lokalen Hub, bei Fehlern Wechsel zur Cloud. */
+  /** Startet den Manager: versucht zuerst den lokalen Hub, bei Fehlern Wechsel zur Cloud. Bei Offline sofort OFFLINE. */
   async start(): Promise<void> {
     if (this.stopped) return
+    const { connected } = await getNetworkStatus()
+    if (!connected) {
+      useConnectionStore.getState().setState("OFFLINE")
+      useConnectionStore.getState().setLastError("Keine Netzwerkverbindung")
+      return
+    }
     useConnectionStore.getState().setState("CONNECTING_LOCAL")
+    this.removeNetworkListener = addConnectionListener((connected) => {
+      if (!connected && !this.stopped) {
+        this.clearPingTimer()
+        this.clearHysteresisTimer()
+        this.transitionTo("OFFLINE")
+        useConnectionStore.getState().setLastError("Netzwerkverbindung verloren")
+      }
+    })
     try {
       await this.transport.connectLocal()
       this.transitionTo("CONNECTED_LOCAL")
@@ -52,6 +68,8 @@ export class ConnectionManager {
   /** Stoppt den Manager und alle Timer. */
   async stop(): Promise<void> {
     this.stopped = true
+    this.removeNetworkListener?.()
+    this.removeNetworkListener = null
     this.clearPingTimer()
     this.clearHysteresisTimer()
     try {

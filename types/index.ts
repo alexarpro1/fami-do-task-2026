@@ -18,7 +18,7 @@ export interface Child {
   longestStreak?: number // Best streak ever
   lastActiveDate?: string // Last date with completed task (YYYY-MM-DD)
   achievements?: string[] // Achievement IDs unlocked
-  /** Goldmünzen aus Spielen – eigenes Belohnungssystem nur für Spiele. */
+  /** Goldmünzen aus Minispielen (separat vom Punktesystem). */
   gameGoldCoins?: number
 }
 
@@ -239,7 +239,7 @@ export type FamilyAction =
   | { type: "SUBTRACT_POINTS"; payload: { childId: string; points: number } }
   | { type: "ADJUST_POINTS"; payload: { childId: string; amount: number; reason: string } }
   | { type: "ADD_POINTS_FROM_GAME"; payload: { childId: string; amount: number; reason: string } }
-  | { type: "ADD_GOLD_COINS_FROM_GAME"; payload: { childId: string; amount: number; reason?: string } }
+  | { type: "ADD_GOLD_COINS_FROM_GAME"; payload: { childId: string; amount: number } }
   | { type: "ADD_TO_WISHLIST"; payload: { childId: string; rewardId: string } }
   | { type: "REMOVE_FROM_WISHLIST"; payload: { childId: string; rewardId: string } }
   | { type: "UNLOCK_ACHIEVEMENT"; payload: { childId: string; achievementId: string } }
@@ -267,6 +267,7 @@ export type FamilyAction =
   | { type: "UPDATE_SETTINGS"; payload: Partial<AppSettings> }
   // State Actions
   | { type: "LOAD_STATE"; payload: FamilyState }
+  | { type: "IMPORT_STATE"; payload: Partial<FamilyState> }
   | { type: "RESET_STATE" }
   | { type: "UNLOCK_STICKER"; payload: { childId: string; stickerId: string } }
   | { type: "ADD_MOOD"; payload: { childId: string; mood: MoodEntry["mood"]; note?: string } }

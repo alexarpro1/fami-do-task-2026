@@ -137,6 +137,38 @@ export const rule_applications = new Table(
   }
 )
 
+/** Phase 15: Ein Eintrag pro Gerät; id = device_id, sync_id = Familien-Code. */
+export const devices = new Table(
+  {
+    id: column.text,
+    sync_id: column.text,
+    device_name: column.text,
+    last_active: column.text,
+    created_at: column.text,
+    os_version: column.text,
+    device_model: column.text,
+    region_timezone: column.text,
+    last_ip: column.text,
+    location_data: column.text,
+  },
+  { indexes: { by_sync_id: ["sync_id"] } }
+)
+
+/** Phase 14 (V2): Audit-Logs für Analytics/Sicherheit. */
+export const audit_logs = new Table(
+  {
+    id: column.text,
+    sync_id: column.text,
+    device_id: column.text,
+    event_type: column.text,
+    entity_name: column.text,
+    entity_id: column.text,
+    details: column.text,
+    created_at: column.text,
+  },
+  { indexes: { by_sync_id: ["sync_id"] } }
+)
+
 export const AppSchema = new Schema({
   tasks,
   task_completions,
@@ -145,6 +177,8 @@ export const AppSchema = new Schema({
   reward_redemptions,
   rules,
   rule_applications,
+  devices,
+  audit_logs,
 })
 
 /** Typen für TypeScript (z. B. bei db.get/db.getAll) */
@@ -156,3 +190,5 @@ export type RewardRecord = Database["rewards"]
 export type RewardRedemptionRecord = Database["reward_redemptions"]
 export type RuleRecord = Database["rules"]
 export type RuleApplicationRecord = Database["rule_applications"]
+export type DeviceRecord = Database["devices"]
+export type AuditLogRecord = Database["audit_logs"]

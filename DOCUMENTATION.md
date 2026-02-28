@@ -168,6 +168,21 @@ So vermeidest du den Fehler **„Unable to delete directory“** (gesperrte Buil
 
 ---
 
+## 3b. Supabase Cloud-Sync (Phase 14) & Anonymous Auth
+
+- **Device-ID / Familien-Code:** Einstellungen → „Cloud-Sync (Geräte verbinden)“. Die App nutzt **Anonymous Sign-In** und setzt `user_metadata.sync_id` im JWT; RLS-Policies erlauben Zugriff nur auf Zeilen mit passender `sync_id`.
+- **Anonymous User = Rolle „authenticated“:** Supabase behandelt anonyme User wie normale authentifizierte User (Rolle `authenticated`). Optional kann man mit `auth.jwt()->>'is_anonymous'` zwischen anonym und dauerhaft unterscheiden (z. B. restrictive Policy).
+- **Aufräumen alter anonymer User (optional):** Im Supabase SQL-Editor z. B. alle 30 Tage ausführen:
+  ```sql
+  DELETE FROM auth.users
+  WHERE is_anonymous IS TRUE AND created_at < now() - interval '30 days';
+  ```
+- **Anonymous Sign-In aktivieren:** Supabase-Dashboard → Authentication → Providers → **Anonymous** aktivieren. Ohne das schlägt Backup→Cloud mit RLS-Fehler fehl.
+- **Pull-to-Refresh:** Wenn Cloud-Sync (Familien-Code) aktiv ist, kann die App durch **Wischen von oben nach unten** (Finger oben halten und ziehen, wie im Browser) manuell aktualisiert werden. Die Daten werden dann erneut von Supabase geladen. Komponente: `components/ui/pull-to-refresh.tsx`, Kontext: `context/sync-refresh-context.tsx`.
+- **Live-Updates:** Der **SupabaseDataLoader** abonniert Supabase Realtime (Postgres Changes) für die Sync-Tabellen. Änderungen auf einem Gerät werden auf anderen verbundenen Geräten (gleicher Familien-Code) automatisch nachgeladen. Zusätzlich kann jederzeit per Pull-to-Refresh manuell aktualisiert werden.
+
+---
+
 ## 4. Spiele-UI (Schach, Dame & neue Spiele)
 
 ### Einheitliches Layout-Muster (Platzierung)
@@ -212,6 +227,7 @@ Für alle Spiele mit **Neu starten**, **Einstellungen**, **Regeln** und **Heraus
 - **public/placeholder-user.jpg** – Platzhalter für Benutzer-Avatar.
 - **public/icon.svg** – App-Icon (SVG mit eingebettetem Logo; wird z.B. als Favicon genutzt).
 - Logo-Quelle für Icon: **FamiDo Task  LOGO-2.png**. Neues SVG erzeugen mit: **`node scripts/embed-icon-svg.js`** (schreibt public/icon.svg).
+- **Android-Splash:** `android/app/src/main/res/drawable/splash.png` wird aus demselben Logo befüllt. Austausch mit: **`npm run android:splash`** (nutzt scripts/copy-splash-from-logo.js).
 
 ---
 
@@ -227,11 +243,7 @@ Für alle Spiele mit **Neu starten**, **Einstellungen**, **Regeln** und **Heraus
 | **scripts/clean-android-builds.js** | Löscht alle Android-Build-Ordner, stoppt Gradle. |
 | **scripts/run-android-bs.js** | Startet die App auf BlueStacks. |
 | **scripts/embed-icon-svg.js** | Erzeugt public/icon.svg aus FamiDo Task  LOGO-2.png. |
-| **scripts/supabase-rls-tasks.sql** | RLS für Supabase-Tabelle `tasks`: im Dashboard (SQL Editor) ausführen, damit eingeloggte User lesen/schreiben dürfen. |
-| **scripts/supabase-completions.sql** | Phase 7: Tabelle `task_completions` in Supabase anlegen, RLS, Publication. |
-| **docs/POWERSYNC_SYNC_RULES_PHASE7.md** | PowerSync Sync Rules um `task_completions` erweitern (YAML/UI). |
-| **scripts/supabase-children.sql** | Phase 9: Tabelle `children` in Supabase anlegen, RLS, Publication. |
-| **docs/POWERSYNC_SYNC_RULES_PHASE9.md** | PowerSync Sync Rules um `children` erweitern (SELECT * FROM children). |
+| **scripts/copy-splash-from-logo.js** | Kopiert FamiDo Task  LOGO-2.png → android/…/drawable/splash.png. Aufruf: `npm run android:splash`. |
 
 ---
 

@@ -1,17 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { useSelectedChild } from "@/hooks/useChildren"
 import { useFamily } from "@/context/family-context"
-import { Settings, ChevronDown } from "lucide-react"
+import { Settings, Star, ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { ChildSelectorModal } from "@/components/child/child-selector-modal"
 import { ChildAvatar } from "@/components/child/child-avatar"
-import { ChildPoints } from "@/components/points/child-points"
 
 export function Header() {
-  const { isLoaded } = useFamily()
-  const { selectedChild, children } = useSelectedChild()
+  const { selectedChild, isLoaded, state } = useFamily()
   const [showChildSelector, setShowChildSelector] = useState(false)
 
   return (
@@ -31,7 +28,7 @@ export function Header() {
               >
                 <ChildAvatar avatar={selectedChild.avatar} color={selectedChild.color} size="sm" />
                 <span className="font-semibold text-foreground">{selectedChild.name}</span>
-                {children.length > 1 && <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                {state.children.length > 1 && <ChevronDown className="w-4 h-4 text-muted-foreground" />}
               </button>
             )}
           </div>
@@ -39,7 +36,8 @@ export function Header() {
           <div className="flex items-center gap-2">
             {isLoaded && selectedChild && (
               <div className="flex items-center gap-2 px-4 py-2 bg-points/20 rounded-full">
-                <ChildPoints childId={selectedChild.id} size="md" showLoading />
+                <Star className="w-5 h-5 text-points fill-points" />
+                <span className="font-bold text-foreground">{selectedChild.points}</span>
               </div>
             )}
 

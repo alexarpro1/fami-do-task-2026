@@ -23,8 +23,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { ChildAvatar } from "@/components/child/child-avatar"
-import { ChildPoints } from "@/components/points/child-points"
-import { useSelectedChild } from "@/hooks/useChildren"
 import { AppVersionFooter } from "@/components/ui/app-version-footer"
 import { Home, CheckSquare, Gift, PawPrint, Sticker, Smile, Settings, ChevronDown, Scale, User, Gamepad2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -36,13 +34,13 @@ interface DashboardLayoutProps {
 
 function SidebarNavigation() {
   const pathname = usePathname()
-  const { state, dispatch, isLoaded } = useFamily()
-  const { children: childrenArray, selectedChild } = useSelectedChild()
+  const { state, selectedChild, dispatch, isLoaded } = useFamily()
   const { t } = useTranslation()
   const { state: sidebarState, setOpenMobile } = useSidebar()
   const isCollapsed = sidebarState === "collapsed"
 
   const settings = state?.settings ?? {}
+  const childrenArray = state?.children ?? []
 
   const shopEnabled = settings.shopEnabled ?? true
   const profileEnabled = settings.profileEnabled ?? true
@@ -124,7 +122,7 @@ function SidebarNavigation() {
                     <>
                       <div className="flex-1 text-left">
                         <div className="font-medium text-sidebar-foreground">{selectedChild.name}</div>
-                        <ChildPoints childId={selectedChild.id} labelOnly showLoading className="text-xs text-muted-foreground" />
+                        <div className="text-xs text-muted-foreground">{selectedChild.points} Punkte</div>
                       </div>
                       <ChevronDown className="w-4 h-4 text-muted-foreground" />
                     </>
@@ -141,9 +139,9 @@ function SidebarNavigation() {
                     <ChildAvatar avatar={child.avatar} color={child.color} size="sm" />
                     <div className="flex-1">
                       <div className="font-medium text-foreground">{child.name}</div>
-                      <ChildPoints childId={child.id} labelOnly showLoading className="text-xs text-muted-foreground" />
+                      <div className="text-xs text-muted-foreground">{child.points} Punkte</div>
                     </div>
-                    {selectedChild && child.id === selectedChild.id && <span className="text-primary">aktiv</span>}
+                    {child.id === selectedChild.id && <span className="text-primary">aktiv</span>}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>

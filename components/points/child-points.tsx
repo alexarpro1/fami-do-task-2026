@@ -1,46 +1,37 @@
 "use client"
 
-import { useChildPoints } from "@/hooks/useCompletions"
-import { PointsDisplay } from "./points-display"
+import { useFamily } from "@/context/family-context"
+import { PointsDisplay } from "@/components/points/points-display"
 import { cn } from "@/lib/utils"
 
 interface ChildPointsProps {
-  childId: string | null
-  size?: "sm" | "md" | "lg"
-  showLoading?: boolean
-  /** Wenn true, nur "X Punkte" als Text (für Sidebar/Listen) */
+  childId: string
   labelOnly?: boolean
+  showLoading?: boolean
+  size?: "sm" | "md" | "lg"
   className?: string
 }
 
-/**
- * Live-Punkte eines Kindes aus PowerSync (task_completions).
- * Zeigt Lade-Zustand, wenn showLoading und isLoading.
- */
-export function ChildPoints({
-  childId,
-  size = "md",
-  showLoading = true,
-  labelOnly = false,
-  className,
-}: ChildPointsProps) {
-  const { points, isLoading } = useChildPoints(childId)
+export function ChildPoints({ childId, labelOnly, showLoading, size = "sm", className }: ChildPointsProps) {
+  const { state } = useFamily()
+  const child = state.children.find((c) => c.id === childId)
+  const points = child?.points ?? 0
 
-  if (showLoading && isLoading) {
+  if (showLoading && !child) {
     return (
-      <span className={cn("text-muted-foreground", className)}>
-        {labelOnly ? "… Punkte" : "…"}
-      </span>
+      <span className={cn("inline-block h-5 w-12 animate-pulse rounded bg-muted", className)} aria-hidden />
     )
   }
 
   if (labelOnly) {
     return (
       <span className={cn("text-muted-foreground", className)}>
-        {points} Punkte
+        <PointsDisplay points={points} size={size} showAnimation={false} />
       </span>
     )
   }
 
-  return <PointsDisplay points={points} size={size} className={className} />
+  return (
+    <PointsDisplay points={points} size={size} className={className} />
+  )
 }

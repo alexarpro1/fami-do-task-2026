@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react"
 import { APP_VERSION } from "@/lib/version"
 import { Button } from "@/components/ui/button"
-import { getUpdateInfo } from "@/lib/sync-v2/version-client"
+import { getUpdateInfo, MANUAL_UPDATE_CHECK_EVENT } from "@/lib/sync-v2/version-client"
+import type { UpdateInfo } from "@/lib/sync-v2/version-client"
 import { getUpdateCheckAdapter } from "@/lib/sync-v2/adapters"
 import { X, Download, ExternalLink } from "lucide-react"
 
@@ -17,6 +18,13 @@ export function UpdateAvailableBanner() {
   } | null>(null)
   const [dismissed, setDismissed] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  const applyUpdateInfo = (info: UpdateInfo) => {
+    if (info.available) {
+      setUpdateInfo({ available: true, label: info.label, updateUrl: info.updateUrl })
+      setDismissed(false)
+    }
+  }
 
   useEffect(() => {
     const dismissedBuild = typeof window !== "undefined" ? localStorage.getItem(DISMISS_KEY) : null
@@ -38,6 +46,15 @@ export function UpdateAvailableBanner() {
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    const onManualCheck = (e: Event) => {
+      const detail = (e as CustomEvent<UpdateInfo>).detail
+      if (detail?.available) applyUpdateInfo(detail)
+    }
+    window.addEventListener(MANUAL_UPDATE_CHECK_EVENT, onManualCheck)
+    return () => window.removeEventListener(MANUAL_UPDATE_CHECK_EVENT, onManualCheck)
+  }, [])
+
   const handleDismiss = () => {
     setDismissed(true)
     if (typeof window !== "undefined") {
@@ -48,6 +65,18 @@ export function UpdateAvailableBanner() {
   if (loading || !updateInfo?.available || dismissed) return null
 
   const updateUrl = updateInfo.updateUrl || (typeof window !== "undefined" ? window.location.origin : "/")
+
+  const openUpdateUrl = async () => {
+    try {
+      const cap = (typeof window !== "undefined" && (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor) as { isNativePlatform?: () => boolean } | undefined
+      if (cap?.isNativePlatform?.()) {
+        const { Browser } = await import("@capacitor/browser")
+        await Browser.open({ url: updateUrl })
+        return
+      }
+    } catch (_) {}
+    window.open(updateUrl, "_blank", "noopener,noreferrer")
+  }
 
   return (
     <div
@@ -65,16 +94,10 @@ export function UpdateAvailableBanner() {
           variant="secondary"
           size="sm"
           className="h-8 gap-1.5"
-          asChild
+          onClick={openUpdateUrl}
         >
-          <a
-            href={updateUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            Aktualisieren
-          </a>
+          <ExternalLink className="w-3.5 h-3.5" />
+          Aktualisieren
         </Button>
         <Button
           variant="ghost"

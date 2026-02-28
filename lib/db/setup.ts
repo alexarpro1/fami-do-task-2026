@@ -2,6 +2,10 @@
  * PowerSync-Initialisierung – ausschließlich aufrufen im Client (Browser/Capacitor).
  * Keine Instanzerstellung auf Modulebene, damit Next.js beim Build/SSR nicht auf
  * @powersync/web / wa-sqlite (WASM/IndexedDB) zugreift.
+ *
+ * Phase 14: PowerSync ist pausiert; Sync läuft über Supabase Direct (Device ID).
+ * Die App blockiert nicht auf waitForReady(), damit "Datenbank wird geladen…" nicht
+ * hängen bleibt, wenn keine PowerSync-URL gesetzt ist.
  */
 
 import { PowerSyncDatabase } from "@powersync/web"
@@ -11,9 +15,8 @@ import { SupabaseConnector } from "@/lib/sync/SupabaseConnector"
 let dbInstance: PowerSyncDatabase | null = null
 
 /**
- * Erstellt einmalig eine PowerSyncDatabase-Instanz, verbindet den Supabase-Connector
- * und gibt die Instanz zurück. Beim erneuten Aufruf wird dieselbe Instanz zurückgegeben.
- * Nur im Browser aufrufen (z. B. aus einem useEffect in einer "use client"-Komponente).
+ * Erstellt einmalig eine PowerSyncDatabase-Instanz, verbindet den Connector im Hintergrund
+ * und gibt die Instanz sofort zurück. Die UI blockiert nicht auf waitForReady().
  */
 export async function setupPowerSync(): Promise<PowerSyncDatabase> {
   if (dbInstance) {
@@ -28,10 +31,11 @@ export async function setupPowerSync(): Promise<PowerSyncDatabase> {
     },
   })
 
-  await db.connect(connector)
-  await db.waitForReady()
-
   dbInstance = db
+  db.connect(connector)
+    .then(() => (process.env.NEXT_PUBLIC_POWERSYNC_URL ? db.waitForReady() : undefined))
+    .catch((err) => console.warn("[PowerSync] connect/waitForReady:", err))
+
   return db
 }
 
@@ -41,15 +45,4 @@ export async function setupPowerSync(): Promise<PowerSyncDatabase> {
  */
 export function getPowerSyncInstance(): PowerSyncDatabase | null {
   return dbInstance
-}
-
-/**
- * Trennt die Verbindung und verbindet erneut (z. B. für "Jetzt synchronisieren").
- * Nur aufrufen, wenn setupPowerSync() bereits ausgeführt wurde.
- */
-export async function reconnectPowerSync(): Promise<void> {
-  if (!dbInstance) return
-  const connector = new SupabaseConnector()
-  await dbInstance.disconnect()
-  await dbInstance.connect(connector)
 }

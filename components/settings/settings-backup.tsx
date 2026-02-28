@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Download,
@@ -30,6 +28,9 @@ import {
   type MergeOption,
   DEFAULT_IMPORT_OPTIONS,
 } from "@/lib/backup-migration"
+import { pushImportedStateToSupabase } from "../../lib/backup-to-supabase"
+import { isSupabaseConfigured } from "@/lib/supabase/client"
+import { useSyncId, ensureSyncIdInAuth } from "@/hooks/useSyncId"
 import { APP_VERSION } from "@/lib/version"
 
 type BackupType = "settings" | "data" | "all"
@@ -82,7 +83,7 @@ function MergeOptionSelector({
   disabled?: boolean
   renderItem: (item: any) => { name: string; detail?: string; emoji?: string }
 }) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = React.useState(false)
 
   if (disabled || backupItems.length === 0) {
     return null
@@ -189,7 +190,7 @@ function MergeOptionSelector({
                     value === "merge-both" ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-secondary/80"
                   }`}
                 >
-                  Zusammenfuehren
+                  Zusammenführen
                 </button>
               </div>
             </div>
@@ -239,15 +240,17 @@ function extractBackupItems(data: any) {
 
 export function SettingsBackup() {
   const { state, dispatch } = useFamily()
-  const [showImportModal, setShowImportModal] = useState(false)
-  const [importData, setImportData] = useState<any>(null)
-  const [importError, setImportError] = useState<string | null>(null)
-  const [importSuccess, setImportSuccess] = useState(false)
-  const [importWarnings, setImportWarnings] = useState<string[]>([])
-  const [isMigrated, setIsMigrated] = useState(false)
-  const [importOptions, setImportOptions] = useState<ImportOptions>(DEFAULT_IMPORT_OPTIONS)
-  const [validationResult, setValidationResult] = useState<ReturnType<typeof validateBackup> | null>(null)
-  const [backupItems, setBackupItems] = useState<ReturnType<typeof extractBackupItems> | null>(null)
+  const { syncId } = useSyncId()
+  const [showImportModal, setShowImportModal] = React.useState(false)
+  const [importData, setImportData] = React.useState<any>(null)
+  const [importError, setImportError] = React.useState<string | null>(null)
+  const [importSuccess, setImportSuccess] = React.useState(false)
+  const [importWarnings, setImportWarnings] = React.useState<string[]>([])
+  const [backupSupabaseError, setBackupSupabaseError] = React.useState<string | null>(null)
+  const [isMigrated, setIsMigrated] = React.useState(false)
+  const [importOptions, setImportOptions] = React.useState<ImportOptions>(DEFAULT_IMPORT_OPTIONS)
+  const [validationResult, setValidationResult] = React.useState<ReturnType<typeof validateBackup> | null>(null)
+  const [backupItems, setBackupItems] = React.useState<ReturnType<typeof extractBackupItems> | null>(null)
 
   const exportBackup = (type: "settings" | "data" | "all") => {
     const now = new Date().toISOString()
@@ -304,6 +307,7 @@ export function SettingsBackup() {
     setImportError(null)
     setImportSuccess(false)
     setImportWarnings([])
+    setBackupSupabaseError(null)
     setIsMigrated(false)
     setImportOptions(DEFAULT_IMPORT_OPTIONS)
     setValidationResult(null)
@@ -341,12 +345,43 @@ export function SettingsBackup() {
     }
 
     if (result.state) {
-      dispatch({ type: "LOAD_STATE", payload: result.state })
+      const newState = result.state
+      dispatch({ type: "LOAD_STATE", payload: newState })
 
       try {
-        window.localStorage.setItem("famiapp-state", JSON.stringify(result.state))
+        window.localStorage.setItem("famiapp-state", JSON.stringify(newState))
       } catch (e) {
         console.error("Failed to save to localStorage:", e)
+      }
+
+      if (isSupabaseConfigured() && syncId) {
+        setBackupSupabaseError(null)
+        ensureSyncIdInAuth(syncId)
+          .then((authResult) => {
+            if (!authResult.ok) {
+              setBackupSupabaseError(
+                "Cloud-Anmeldung fehlgeschlagen. Im Supabase-Dashboard: Authentication → Providers → Anonymous Sign-In aktivieren. Danach App neu laden und erneut importieren."
+              )
+              return { ok: false, error: "Auth not ready" }
+            }
+            return pushImportedStateToSupabase(newState, syncId, authResult.client)
+          })
+          .then((res) => {
+            if (!res) return
+            const { ok, error } = res
+            if (!ok && error && error !== "Auth not ready") {
+              const isTableMissing = /schema cache|Could not find the table/i.test(error)
+              const isRls = /row-level security|violates row-level security/i.test(error)
+              if (!isTableMissing) console.error("[Backup→Supabase]", error)
+              setBackupSupabaseError(
+                isTableMissing
+                  ? "Cloud-Tabellen fehlen. Bitte im Supabase-Dashboard das Skript scripts/supabase-create-all-tables.sql ausführen."
+                  : isRls
+                    ? "Zugriff verweigert (RLS). Bitte Anonymous Sign-In aktivieren und App neu laden. Falls der Fehler bleibt: Script scripts/supabase-push-backup-rpc.sql im Supabase-Dashboard ausführen und erneut importieren."
+                    : error
+              )
+            }
+          })
       }
 
       setImportWarnings(result.warnings || [])
@@ -358,6 +393,7 @@ export function SettingsBackup() {
         setImportData(null)
         setImportSuccess(false)
         setImportWarnings([])
+        setBackupSupabaseError(null)
         setIsMigrated(false)
         setValidationResult(null)
         setBackupItems(null)
@@ -469,6 +505,12 @@ export function SettingsBackup() {
                           {warning}
                         </p>
                       ))}
+                    </div>
+                  )}
+                  {backupSupabaseError && (
+                    <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mt-2 text-left">
+                      <p className="text-xs font-medium text-destructive">Cloud-Sync:</p>
+                      <p className="text-xs text-destructive/90 mt-1">{backupSupabaseError}</p>
                     </div>
                   )}
                 </div>
@@ -621,7 +663,7 @@ export function SettingsBackup() {
                       <div className="bg-secondary/50 rounded-lg p-3">
                         <p className="text-sm text-muted-foreground">
                           Nur Einstellungen werden importiert. Kinder, Aufgaben, Belohnungen und Regeln bleiben
-                          unveraendert.
+                          unverändert.
                         </p>
                       </div>
                     )}

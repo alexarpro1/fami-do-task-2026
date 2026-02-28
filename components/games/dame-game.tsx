@@ -29,6 +29,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RotateCcw, Users, Cpu, ChevronDown, ChevronUp, Trophy, BookOpen, Settings2, ZoomIn, ZoomOut } from "lucide-react"
+import { applyXpAndGetBonuses, getLevelProgress, getNextBonusLevel } from "@/lib/game-progression"
 
 const DAME_STORAGE_KEY = "fami-dame-progress"
 const DAME_GAME_STORAGE_KEY = "fami-dame-game"
@@ -317,6 +318,10 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
   const [undoStack, setUndoStack] = useState<DameUndoState[]>([])
   const prevTurnRef = useRef<Color | null>(null)
   const skipNextPushRef = useRef(false)
+  const dameBonusClaimedRef = useRef<number[]>([])
+
+  const { xpInCurrentLevel, xpForNextLevel, nextLevel } = getLevelProgress(dameXp, XP_PER_LEVEL)
+  const nextBonusLevel = getNextBonusLevel("dame", dameLevel)
 
   useEffect(() => {
     if (!animatingMove) return
@@ -401,10 +406,14 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
     try {
       const raw = localStorage.getItem(DAME_STORAGE_KEY)
       if (raw) {
-        const { level = 1, xp = 0, totalCaptured = 0 } = JSON.parse(raw)
-        setDameLevel(level)
-        setDameXp(xp)
-        setTotalCapturedLifetime(totalCaptured)
+        const parsed = JSON.parse(raw)
+        const { level = 1, xp = 0, totalCaptured = 0, bonusClaimedLevels } = parsed
+        setDameLevel(typeof level === "number" && level > 0 ? level : 1)
+        setDameXp(typeof xp === "number" && xp >= 0 ? xp : 0)
+        setTotalCapturedLifetime(typeof totalCaptured === "number" && totalCaptured >= 0 ? totalCaptured : 0)
+        if (Array.isArray(bonusClaimedLevels)) {
+          dameBonusClaimedRef.current = bonusClaimedLevels.filter((n: unknown) => typeof n === "number" && Number.isFinite(n))
+        }
       }
     } catch {
       // ignore
@@ -496,16 +505,26 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
     const taskXp = completedTasks * XP_PER_TASKCARD
     const addXp = baseXp + captureXp + kingXp + taskXp
     if (addXp <= 0 && !win) return
-    const next = dameXp + addXp
-    const level = Math.max(1, Math.floor(next / XP_PER_LEVEL) + 1)
-    setDameXp(next)
-    setDameLevel(level)
+    const {
+      xp: nextXp,
+      level: newLevel,
+      bonusClaimedLevels,
+      bonusCoins,
+      newBonusLevels,
+    } = applyXpAndGetBonuses("dame", { xp: dameXp, level: dameLevel, bonusClaimedLevels: dameBonusClaimedRef.current }, addXp, XP_PER_LEVEL)
+    dameBonusClaimedRef.current = bonusClaimedLevels
+    setDameXp(nextXp)
+    setDameLevel(newLevel)
     const newTotal = totalCapturedLifetime + humanCapturesThisGame
     setTotalCapturedLifetime(newTotal)
     try {
-      localStorage.setItem(DAME_STORAGE_KEY, JSON.stringify({ level, xp: next, totalCaptured: newTotal }))
+      localStorage.setItem(DAME_STORAGE_KEY, JSON.stringify({ level: newLevel, xp: nextXp, totalCaptured: newTotal, bonusClaimedLevels }))
     } catch {
       // ignore
+    }
+    if (bonusCoins > 0 && newBonusLevels.length > 0) {
+      const reachedText = newBonusLevels.length === 1 ? `Level ${newBonusLevels[0]}` : `Level ${newBonusLevels.join(", ")}`
+      onAwardPoints(bonusCoins, `Bonus: ${reachedText} erreicht! +${bonusCoins} Goldmünzen`, "Dame: Level-Bonus")
     }
   }, [result, gameMode, xpAwarded, dameXp, humanCapturesThisGame, humanKingsCreatedThisGame, challenges, moveCount, opponentCapturedKing, doubleCaptureWithKing, maxCapturesInOneMove, firstKingAtMove, totalCapturedLifetime])
 
@@ -757,9 +776,18 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
               Highscore: <strong>{totalCapturedLifetime}</strong> Steine geschlagen
             </span>
           )}
-          <p className="text-sm text-muted-foreground">
-            {gameMode === "ai" ? "Du = Weiß. Sieg = +" + POINTS_WIN + " Goldmünzen" : "Sieg = +" + POINTS_WIN + ", Unentschieden = +" + POINTS_DRAW + " Goldmünzen"}
-          </p>
+          <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+            <p>
+              {gameMode === "ai"
+                ? "Du = Weiß. Sieg = +" + POINTS_WIN + " Goldmünzen"
+                : "Sieg = +" + POINTS_WIN + ", Unentschieden = +" + POINTS_DRAW + " Goldmünzen"}
+            </p>
+            <p>
+              XP {xpInCurrentLevel}/{xpForNextLevel || 0}
+              {nextLevel ? ` bis Level ${nextLevel}` : " · Max-Level erreicht"}
+              {nextBonusLevel && nextBonusLevel > dameLevel && ` · Nächster Bonus bei Level ${nextBonusLevel}`}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button

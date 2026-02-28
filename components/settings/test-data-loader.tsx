@@ -231,6 +231,8 @@ export function TestDataLoader() {
           endTime: "13:00",
         },
       ],
+      pointAdjustments: [],
+      achievements: [],
     }
 
     dispatch({ type: "LOAD_STATE", payload: testData })

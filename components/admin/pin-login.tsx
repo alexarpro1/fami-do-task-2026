@@ -49,8 +49,10 @@ export function PinLogin({
     if (newPin.every((d) => d !== "") && index === 3) {
       const enteredPin = newPin.join("")
       if (enteredPin === correctPin) {
+        import("@/lib/haptics").then((m) => m.hapticSuccess())
         onSuccess()
       } else {
+        import("@/lib/haptics").then((m) => m.hapticError())
         setError(true)
         setShake(true)
         setTimeout(() => {

@@ -7,7 +7,7 @@ import { Cloud, Sun, CloudRain, CloudSnow, CloudLightning, Wind, RefreshCw, Chev
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
 import type { WeatherData } from "@/types"
-import { fetchWeatherFromCoords, fetchCoordsFromCity, getBrowserLocation } from "@/lib/weather"
+import { fetchWeatherFromCoords, fetchCoordsFromCity, getCurrentLocation } from "@/lib/weather"
 import type { WeatherResult } from "@/lib/weather"
 
 type ClothingRecommendation = {
@@ -200,7 +200,7 @@ export function WeatherWidget({ compact = false }: WeatherWidgetProps) {
         lon = state.settings.weatherLon
       } else {
         try {
-          const pos = await getBrowserLocation()
+          const pos = await getCurrentLocation()
           lat = pos.lat
           lon = pos.lon
         } catch {
@@ -270,7 +270,7 @@ export function WeatherWidget({ compact = false }: WeatherWidgetProps) {
     setIsLoadingLocation(true)
     setLocationError(null)
     try {
-      const pos = await getBrowserLocation()
+      const pos = await getCurrentLocation()
       dispatch({
         type: "UPDATE_SETTINGS",
         payload: {

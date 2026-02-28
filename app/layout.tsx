@@ -6,8 +6,12 @@ import { FamilyProvider } from "@/context/family-context"
 import { ThemeApplier } from "@/components/theme-applier"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { LanguageHtmlWrapper } from "@/components/language-html-wrapper"
+import { ForcedUpdateModal } from "@/components/ui/forced-update-modal"
 import { UpdateAvailableBanner } from "@/components/ui/update-available-banner"
-import { PowerSyncProvider } from "@/context/PowerSyncProvider"
+import { SyncSessionTracker } from "@/components/cloud-sync/SyncSessionTracker"
+import { SupabaseDataLoader } from "@/components/cloud-sync/SupabaseDataLoader"
+import { SyncRefreshProvider } from "@/context/sync-refresh-context"
+import { PullToRefresh } from "@/components/ui/pull-to-refresh"
 import "./globals.css"
 
 const nunito = Nunito({
@@ -91,12 +95,16 @@ export default function RootLayout({
       >
         <ErrorBoundary>
           <FamilyProvider>
-            <PowerSyncProvider>
+            <SyncSessionTracker />
+            <SupabaseDataLoader />
+            <SyncRefreshProvider>
+              <PullToRefresh />
               <ThemeApplier />
               <LanguageHtmlWrapper />
+              <ForcedUpdateModal />
               <UpdateAvailableBanner />
               {children}
-            </PowerSyncProvider>
+            </SyncRefreshProvider>
           </FamilyProvider>
         </ErrorBoundary>
         <Analytics />

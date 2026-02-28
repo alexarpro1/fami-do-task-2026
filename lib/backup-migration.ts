@@ -78,6 +78,7 @@ export interface ImportOptions {
   mergeTasks: MergeOption
   mergeRewards: MergeOption
   mergeRules: MergeOption
+  mergePets?: MergeOption
 }
 
 export const DEFAULT_IMPORT_OPTIONS: ImportOptions = {
@@ -85,6 +86,7 @@ export const DEFAULT_IMPORT_OPTIONS: ImportOptions = {
   mergeTasks: "use-backup",
   mergeRewards: "use-backup",
   mergeRules: "use-backup",
+  mergePets: "use-backup",
 }
 
 // Validation Results
@@ -430,7 +432,7 @@ export function importBackupWithMigration(
             tasks: mergeArrays(currentState.tasks, data.tasks || [], options.mergeTasks),
             rewards: mergeArrays(currentState.rewards, data.rewards || [], options.mergeRewards),
             rules: mergeArrays(currentState.rules, data.rules || [], options.mergeRules),
-            pets: data.pets || currentState.pets,
+            pets: mergeArrays(currentState.pets || [], data.pets || [], options.mergePets ?? "use-backup"),
             lastUpdated: new Date().toISOString(),
           }
           break
@@ -443,7 +445,7 @@ export function importBackupWithMigration(
             tasks: mergeArrays(currentState.tasks, data.state.tasks || [], options.mergeTasks),
             rewards: mergeArrays(currentState.rewards, data.state.rewards || [], options.mergeRewards),
             rules: mergeArrays(currentState.rules, data.state.rules || [], options.mergeRules),
-            pets: data.state.pets || currentState.pets,
+            pets: mergeArrays(currentState.pets || [], data.state.pets || [], options.mergePets ?? "use-backup"),
             stickerCollections: data.state.stickerCollections || currentState.stickerCollections,
             selectedChildId: data.state.selectedChildId || currentState.selectedChildId,
             lastUpdated: new Date().toISOString(),

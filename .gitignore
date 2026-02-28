@@ -28,3 +28,6 @@ next-env.d.ts
 
 # versioned code backups (optional: remove this line to commit backups)
 /backups/
+
+# Android: versionierte APK-Ordner (jede Version ein Ordner)
+/apk-releases/

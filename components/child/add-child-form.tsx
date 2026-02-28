@@ -11,49 +11,31 @@ import { AVATARS, CHILD_COLORS } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 import { Check } from "lucide-react"
 
-export interface AddChildFormParams {
-  name: string
-  avatar: string
-  color: string
-  age?: number
-}
-
 interface AddChildFormProps {
   onSuccess?: () => void
   onCancel?: () => void
-  /** PowerSync: Kind in Cloud anlegen. Wenn gesetzt, wird kein dispatch(ADD_CHILD) verwendet. */
-  onAdd?: (params: AddChildFormParams) => Promise<void> | void
 }
 
-export function AddChildForm({ onSuccess, onCancel, onAdd }: AddChildFormProps) {
+export function AddChildForm({ onSuccess, onCancel }: AddChildFormProps) {
   const { dispatch } = useFamily()
   const [name, setName] = useState("")
   const [age, setAge] = useState("")
   const [avatar, setAvatar] = useState(AVATARS[0])
   const [color, setColor] = useState(CHILD_COLORS[0].value)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
 
-    if (onAdd) {
-      await onAdd({
+    dispatch({
+      type: "ADD_CHILD",
+      payload: {
         name: name.trim(),
+        age: Number.parseInt(age) || 0,
         avatar,
         color,
-        age: Number.parseInt(age) || 0 || undefined,
-      })
-    } else {
-      dispatch({
-        type: "ADD_CHILD",
-        payload: {
-          name: name.trim(),
-          age: Number.parseInt(age) || 0,
-          avatar,
-          color,
-        },
-      })
-    }
+      },
+    })
 
     onSuccess?.()
   }

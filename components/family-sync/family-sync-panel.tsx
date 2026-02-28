@@ -5,6 +5,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { QRCodeDisplay } from "./qr-code-display"
 import {
   Users,
@@ -56,6 +66,7 @@ export function FamilySyncPanel() {
   const [lastSync, setLastSync] = useState<Date | null>(null)
   const [isOnline, setIsOnline] = useState(true)
   const [showQRCode, setShowQRCode] = useState(false)
+  const [leaveFamilyDialogOpen, setLeaveFamilyDialogOpen] = useState(false)
 
   // Online-Status ueberwachen
   useEffect(() => {
@@ -176,10 +187,7 @@ export function FamilySyncPanel() {
   }
 
   async function handleLeaveFamily() {
-    if (!confirm("Wirklich die Familie verlassen? Lokale Daten bleiben erhalten.")) {
-      return
-    }
-
+    setLeaveFamilyDialogOpen(false)
     setIsLoading(true)
     const result = await leaveFamily()
 
@@ -384,12 +392,29 @@ export function FamilySyncPanel() {
           <Button
             variant="outline"
             className="w-full text-destructive hover:text-destructive bg-transparent"
-            onClick={handleLeaveFamily}
+            onClick={() => setLeaveFamilyDialogOpen(true)}
             disabled={isLoading}
           >
             <Unlink className="h-4 w-4 mr-2" />
             Familie verlassen
           </Button>
+
+          <AlertDialog open={leaveFamilyDialogOpen} onOpenChange={setLeaveFamilyDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Familie verlassen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Du wirst von dieser Familie getrennt. Deine lokalen Daten bleiben auf diesem Gerät erhalten.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction onClick={handleLeaveFamily} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Familie verlassen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       ) : (
         /* Not Connected State */

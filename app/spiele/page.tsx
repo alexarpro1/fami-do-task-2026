@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { useFamily } from "@/context/family-context"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CelebrationOverlay } from "@/components/effects/celebration-overlay"
 import Link from "next/link"
-import { Gamepad2, Zap, Brain, Hand, Palette, ArrowLeft, Star, Crown, LayoutGrid, ChevronUp, ChevronDown, Coins } from "lucide-react"
+import { Gamepad2, Zap, Brain, Hand, Palette, ArrowLeft, Crown, LayoutGrid, ChevronUp, ChevronDown } from "lucide-react"
+import { GoldCoinIcon } from "@/components/ui/gold-coin-icon"
+
+
+const COINS_BANNER_DURATION_MS = 1500
 import { ReactionGame } from "@/components/games/reaction-game"
 import { MemoryGame } from "@/components/games/memory-game"
 import { TapGame } from "@/components/games/tap-game"
@@ -16,6 +20,8 @@ import { ColorClickGame } from "@/components/games/color-click-game"
 import { ChessGame, DameGame } from "@/components/games/sdg"
 
 export type GameId = "reaction" | "memory" | "tap" | "color" | "chess" | "dame" | null
+
+type ConcreteGameId = Exclude<GameId, null>
 
 const GAMES: { id: GameId; title: string; description: string; icon: React.ElementType; coinsHint: string }[] = [
   { id: "reaction", title: "Reaktionsspiel", description: "Klicke, sobald es grün wird!", icon: Zap, coinsHint: "Bis zu 15 Goldmünzen pro Runde" },
@@ -36,6 +42,9 @@ export default function SpielePage() {
     amount: 0,
     message: "",
   })
+
+  const [gameLevels, setGameLevels] = useState<Partial<Record<ConcreteGameId, number>>>({})
+  const [showCoinsBanner, setShowCoinsBanner] = useState(false)
 
   const gamesOrder: GameId[] =
     state.settings?.gamesOrder &&
@@ -62,15 +71,56 @@ export default function SpielePage() {
     dispatch({ type: "UPDATE_SETTINGS", payload: { gamesOrder: ids } })
   }
 
-  /** Vergibt Goldmünzen (nur für Spiele) – eigenes Belohnungssystem, keine Punkte. */
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      const readLevel = (key: string): number | undefined => {
+        const raw = localStorage.getItem(key)
+        if (!raw) return undefined
+        try {
+          const parsed = JSON.parse(raw)
+          const level = typeof parsed.level === "number" ? parsed.level : 1
+          if (!Number.isFinite(level) || level <= 0) return 1
+          return Math.min(50, Math.max(1, Math.floor(level)))
+        } catch {
+          return undefined
+        }
+      }
+      setGameLevels({
+        reaction: readLevel("famiapp-reaction-progress"),
+        memory: readLevel("famiapp-memory-progress"),
+        tap: readLevel("famiapp-tap-progress"),
+        color: readLevel("famiapp-color-click-progress"),
+        chess: readLevel("famiapp-chess-progress"),
+        dame: readLevel("fami-dame-progress"),
+      })
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  /** Vergibt Goldmünzen (nur für Spiele) – eigenes Belohnungssystem, keine Punkte.
+   *  Wird von allen Spielen genutzt; Anzeige immer unten (Banner). Neue Spiele einfach onAwardPoints={awardGoldCoins} übergeben. */
   const awardGoldCoins = (amount: number, message: string, _reason?: string) => {
     if (!selectedChild || amount <= 0) return
     dispatch({
-      type: "ADD_GOLD_COINS_FROM_GAME",
-      payload: { childId: selectedChild.id, amount },
+      type: "UPDATE_CHILD",
+      payload: {
+        id: selectedChild.id,
+        updates: {
+          gameGoldCoins: (selectedChild.gameGoldCoins ?? 0) + amount,
+        },
+      },
     })
     setCelebration({ active: true, amount, message })
+    setShowCoinsBanner(true)
   }
+
+  useEffect(() => {
+    if (!showCoinsBanner) return
+    const t = setTimeout(() => setShowCoinsBanner(false), COINS_BANNER_DURATION_MS)
+    return () => clearTimeout(t)
+  }, [showCoinsBanner])
 
   if (!selectedChild) {
     return (
@@ -108,11 +158,27 @@ export default function SpielePage() {
             onClick={() => {
               setActiveGame(null)
               setCelebration({ active: false, amount: 0, message: "" })
+              setShowCoinsBanner(false)
             }}
           >
             <ArrowLeft className="w-4 h-4" />
             Zurück zu den Spielen
           </Button>
+          {/* Goldmünzen-Banner: bei jedem Spiel gleich unten anzeigen (auch für künftige Spiele). */}
+          {showCoinsBanner && celebration.amount > 0 && (
+            <div
+              className="fixed bottom-20 left-0 right-0 z-50 flex justify-center px-4 pb-1 pointer-events-none sm:px-6"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex items-center justify-center gap-2 rounded-2xl border border-amber-400/50 bg-amber-500 px-5 py-3.5 text-amber-950 shadow-xl ring-4 ring-amber-500/20 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <GoldCoinIcon size={28} className="drop-shadow-md shrink-0" />
+                <span className="font-[var(--font-fredoka)] text-xl font-bold">
+                  +{celebration.amount} Goldmünzen
+                </span>
+              </div>
+            </div>
+          )}
           {activeGame === "reaction" && (
             <ReactionGame
               onAwardPoints={awardGoldCoins}
@@ -162,7 +228,7 @@ export default function SpielePage() {
           Sammle Goldmünzen – nur in Spielen! Jede Runde und jedes Level zählt.
         </p>
         <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 mb-6">
-          <Coins className="w-5 h-5 text-amber-600 fill-amber-500" />
+          <GoldCoinIcon size={20} className="drop-shadow-sm" />
           <span className="text-sm font-medium text-foreground">
             {selectedChild.name}: <strong>{selectedChild.gameGoldCoins ?? 0} Goldmünzen</strong>
           </span>
@@ -210,10 +276,18 @@ export default function SpielePage() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Coins className="w-3.5 h-3.5 text-amber-500" />
-                    {game.coinsHint}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <GoldCoinIcon size={14} />
+                      {game.coinsHint}
+                    </p>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground/90">
+                      <span>
+                        Level {gameLevels[game.id as ConcreteGameId] ?? 1}/50
+                      </span>
+                      <span>Bonus bei 10/20/30/40/50</span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )

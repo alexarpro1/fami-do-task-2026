@@ -8,14 +8,15 @@ import { LanguageSelector } from "@/components/settings/language-selector"
 import { SchoolTimeSettings } from "@/components/admin/school-time-settings"
 import { TestDataLoader } from "@/components/settings/test-data-loader"
 import { SettingsBackup } from "@/components/settings/settings-backup"
+import { CloudSyncPanel } from "@/components/cloud-sync/CloudSyncPanel"
 import { ThemeSelector } from "@/components/settings/theme-selector"
 import { TabOrderEditor } from "@/components/admin/tab-order-editor"
 import { ChildOrderEditor } from "@/components/admin/child-order-editor"
 import { useFeatureOrder } from "@/components/admin/feature-order-editor"
 import { NotificationSettings } from "@/components/settings/notification-settings"
-import { VersionBadge } from "@/components/ui/version-badge"
+import { VersionBadge, CapacitorInfoBlock } from "@/components/ui/version-badge"
 import { ParentNotificationSettings } from "@/components/settings/parent-notification-settings"
-import { CloudSyncPanel } from "@/components/CloudSyncPanel"
+import { APP_VERSION } from "@/lib/version"
 import Link from "next/link"
 import {
   Volume2,
@@ -47,7 +48,9 @@ import {
   Gamepad2,
   GripVertical,
   RotateCcw,
+  DownloadCloud,
 } from "lucide-react"
+import { useAppUpdate } from "@/hooks/useAppUpdate"
 import { AnimatePresence, motion } from "framer-motion"
 
 function CollapsibleSection({
@@ -94,6 +97,30 @@ function CollapsibleSection({
   )
 }
 
+function AppUpdateBlock() {
+  const { updateAvailable, latestVersion, downloadUrl } = useAppUpdate()
+  if (!updateAvailable) return null
+  const displayVersion = latestVersion ? (latestVersion.startsWith("V") ? latestVersion : `V${latestVersion}`) : ""
+  return (
+    <div className="mb-4 p-4 rounded-xl border border-blue-500/30 bg-blue-500/10 flex items-center justify-between gap-3">
+      <div>
+        <h4 className="font-bold text-blue-500 dark:text-blue-400">App Update verfügbar!</h4>
+        <p className="text-sm text-muted-foreground">
+          {displayVersion ? `Version ${displayVersion} ist jetzt online.` : "Neue Version ist verfügbar."}
+        </p>
+      </div>
+      <Button
+        size="sm"
+        className="shrink-0 gap-2 bg-blue-600 hover:bg-blue-500 text-white"
+        onClick={() => typeof window !== "undefined" && window.open(downloadUrl, "_blank")}
+      >
+        <DownloadCloud className="w-4 h-4" />
+        Jetzt updaten
+      </Button>
+    </div>
+  )
+}
+
 export function SettingsPanel() {
   const { state, dispatch } = useFamily()
   const [showPinChange, setShowPinChange] = useState(false)
@@ -106,7 +133,7 @@ export function SettingsPanel() {
     const now = new Date().toISOString()
     const backup = {
       type: "all",
-      version: "1.0.0",
+      version: APP_VERSION.full,
       exportedAt: now,
       state: state,
     }
@@ -153,16 +180,7 @@ export function SettingsPanel() {
 
   return (
     <div className="space-y-3">
-      {/* Cloud-Sync (PowerSync-Status) */}
-      <CollapsibleSection
-        id="cloudSync"
-        icon={<Cloud className="w-5 h-5" />}
-        title="Cloud-Sync"
-        expanded={expandedSection === "cloudSync"}
-        onToggle={toggleSection}
-      >
-        <CloudSyncPanel />
-      </CollapsibleSection>
+      {/* Familien-Sync */}
 
       <CollapsibleSection
         id="theme"
@@ -431,6 +449,17 @@ export function SettingsPanel() {
         </div>
       </CollapsibleSection>
 
+      {/* Cloud-Sync (Geräte verbinden) – immer sichtbar; Inhalt zeigt Sync-Code oder Hinweis bei fehlender Konfiguration */}
+      <CollapsibleSection
+        id="cloudSync"
+        icon={<Cloud className="w-5 h-5" />}
+        title="Cloud-Sync (Geräte verbinden)"
+        expanded={expandedSection === "cloudSync"}
+        onToggle={toggleSection}
+      >
+        <CloudSyncPanel />
+      </CollapsibleSection>
+
       {/* Backup */}
       <CollapsibleSection
         id="backup"
@@ -465,13 +494,21 @@ export function SettingsPanel() {
         expanded={expandedSection === "developer"}
         onToggle={toggleSection}
       >
-        <TestDataLoader />
+        <div className="space-y-4">
+          <CapacitorInfoBlock />
+          <TestDataLoader />
+        </div>
       </CollapsibleSection>
 
-      {/* App Info */}
-      <section className="text-center py-4">
-        <VersionBadge />
-        <p className="text-xs text-muted-foreground mt-1">Made with love for families</p>
+      {/* App Info – Fensterbereich Version & Update */}
+      <section className="py-4">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+          <AppUpdateBlock />
+          <div className="flex flex-col items-center gap-3 text-center">
+            <VersionBadge />
+            <p className="text-xs text-muted-foreground">Made with love for families</p>
+          </div>
+        </div>
       </section>
     </div>
   )

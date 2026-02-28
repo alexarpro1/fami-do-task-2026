@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { applyXpAndGetBonuses, getLevelProgress, getNextBonusLevel } from "@/lib/game-progression"
 
 const ROUND_OPTIONS = [5, 10] as const
 const POINTS_PER_CORRECT = 5
@@ -11,6 +12,7 @@ const GREEN_DELAY_MAX = 2500
 const COLOR_STORAGE_KEY = "famiapp-color-click-progress"
 const COLOR_XP_PER_ROUND = 5
 const COLOR_XP_PER_LEVEL = 100
+const COLOR_GAME_ID = "color" as const
 
 interface ColorClickGameProps {
   onAwardPoints: (points: number, message: string) => void
@@ -27,6 +29,10 @@ export function ColorClickGame({ onAwardPoints, onClose }: ColorClickGameProps) 
   const [level, setLevel] = useState(1)
   const [xp, setXp] = useState(0)
   const [gameStarted, setGameStarted] = useState(false)
+  const bonusClaimedRef = useRef<number[]>([])
+
+  const { xpInCurrentLevel, xpForNextLevel, nextLevel } = getLevelProgress(xp, COLOR_XP_PER_LEVEL)
+  const nextBonusLevel = getNextBonusLevel(COLOR_GAME_ID, level)
 
   const showGreen = useCallback(() => {
     setPhase("green")
@@ -36,9 +42,13 @@ export function ColorClickGame({ onAwardPoints, onClose }: ColorClickGameProps) 
     try {
       const raw = localStorage.getItem(COLOR_STORAGE_KEY)
       if (raw) {
-        const { level: l = 1, xp: x = 0 } = JSON.parse(raw)
-        setLevel(l)
-        setXp(x)
+        const parsed = JSON.parse(raw)
+        const { level: l = 1, xp: x = 0, bonusClaimedLevels } = parsed
+        setLevel(typeof l === "number" && l > 0 ? l : 1)
+        setXp(typeof x === "number" && x >= 0 ? x : 0)
+        if (Array.isArray(bonusClaimedLevels)) {
+          bonusClaimedRef.current = bonusClaimedLevels.filter((n: unknown) => typeof n === "number" && Number.isFinite(n))
+        }
       }
     } catch {
       // ignore
@@ -59,16 +69,25 @@ export function ColorClickGame({ onAwardPoints, onClose }: ColorClickGameProps) 
       setScore(newScore)
       setPhase("result")
       setMessage(`Richtig! +${points} Goldmünzen`)
-      setXp((prev) => {
-        const next = prev + COLOR_XP_PER_ROUND
-        const newLevel = Math.max(1, Math.floor(next / COLOR_XP_PER_LEVEL) + 1)
+      setXp((prevXp) => {
+        const { xp: nextXp, level: newLevel, bonusClaimedLevels, bonusCoins, newBonusLevels } = applyXpAndGetBonuses(
+          COLOR_GAME_ID,
+          { xp: prevXp, level, bonusClaimedLevels: bonusClaimedRef.current },
+          COLOR_XP_PER_ROUND,
+          COLOR_XP_PER_LEVEL,
+        )
+        bonusClaimedRef.current = bonusClaimedLevels
         setLevel(newLevel)
         try {
-          localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify({ level: newLevel, xp: next }))
+          localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify({ level: newLevel, xp: nextXp, bonusClaimedLevels }))
         } catch {
           // ignore
         }
-        return next
+        if (bonusCoins > 0 && newBonusLevels.length > 0) {
+          const reachedText = newBonusLevels.length === 1 ? `Level ${newBonusLevels[0]}` : `Level ${newBonusLevels.join(", ")}`
+          onAwardPoints(bonusCoins, `Bonus: ${reachedText} erreicht! +${bonusCoins} Goldmünzen`)
+        }
+        return nextXp
       })
       if (round + 1 >= totalRounds) {
         setCompleted(true)
@@ -126,8 +145,15 @@ export function ColorClickGame({ onAwardPoints, onClose }: ColorClickGameProps) 
             </Button>
           ))}
         </div>
-        <div className="flex justify-end">
-          <span className="text-xs text-muted-foreground">Level {level}</span>
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between">
+            <span>Level {level}</span>
+            {nextBonusLevel && nextBonusLevel > level && <span>Nächster Bonus bei Level {nextBonusLevel}</span>}
+          </div>
+          <div>
+            XP {xpInCurrentLevel}/{xpForNextLevel || 0}
+            {nextLevel ? ` bis Level ${nextLevel}` : " · Max-Level erreicht"}
+          </div>
         </div>
         <Button variant="outline" className="w-full" onClick={onClose}>
           Beenden
@@ -145,6 +171,13 @@ export function ColorClickGame({ onAwardPoints, onClose }: ColorClickGameProps) 
         <span className="text-xs font-medium text-muted-foreground shrink-0">
           Level {level}
         </span>
+      </div>
+       <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>
+          XP {xpInCurrentLevel}/{xpForNextLevel || 0}
+          {nextLevel ? ` bis Level ${nextLevel}` : " · Max-Level erreicht"}
+        </span>
+        {nextBonusLevel && nextBonusLevel > level && <span>Nächster Bonus bei Level {nextBonusLevel}</span>}
       </div>
       <button
         type="button"

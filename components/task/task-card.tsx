@@ -3,7 +3,6 @@
 import { useState, useMemo, useRef } from "react"
 import type { Task } from "@/types"
 import { useFamily } from "@/context/family-context"
-import { useCompletions } from "@/hooks/useCompletions"
 import { cn } from "@/lib/utils"
 import { Check, Clock, Play, Pause, RotateCcw, Star, Maximize2, AlertCircle, Ban } from "lucide-react"
 import { useTimer, formatTime } from "@/hooks/use-timer"
@@ -16,14 +15,11 @@ interface TaskCardProps {
   task: Task
   childId: string
   isCompleted: boolean
-  /** Anzahl der heutigen Erledigungen dieser Aufgabe (PowerSync task_completions) – für Tageslimit */
-  completionsTodayCount?: number
   onComplete?: () => void
 }
 
-export function TaskCard({ task, childId, isCompleted, completionsTodayCount = 0, onComplete }: TaskCardProps) {
-  const { state } = useFamily()
-  const { completeTask } = useCompletions()
+export function TaskCard({ task, childId, isCompleted, onComplete }: TaskCardProps) {
+  const { dispatch, state, todayCompletions } = useFamily()
   const [showTimer, setShowTimer] = useState(false)
   const [showTimerModal, setShowTimerModal] = useState(false)
   const [showFocusTimer, setShowFocusTimer] = useState(false)
@@ -44,13 +40,17 @@ export function TaskCard({ task, childId, isCompleted, completionsTodayCount = 0
   const limitInfo = useMemo(() => {
     if (!task.dailyLimit || task.dailyLimit <= 0) return { isLimitReached: false, remaining: null, total: null }
 
-    const remaining = task.dailyLimit - completionsTodayCount
+    const completionsToday = (todayCompletions ?? []).filter(
+      (tc) => tc.taskId === task.id && tc.childId === childId,
+    ).length
+
+    const remaining = task.dailyLimit - completionsToday
     return {
       isLimitReached: remaining <= 0,
       remaining: Math.max(0, remaining),
       total: task.dailyLimit,
     }
-  }, [task.dailyLimit, completionsTodayCount])
+  }, [task.dailyLimit, task.id, childId, todayCompletions])
 
   const timeWindowStatus = useMemo(() => {
     if (!task.startTime && !task.endTime) return { status: "available", message: null }
@@ -115,13 +115,16 @@ export function TaskCard({ task, childId, isCompleted, completionsTodayCount = 0
     }, 2000)
   }
 
-  const handleComplete = (_withTimer: boolean) => {
+  const handleComplete = (withTimer: boolean) => {
     if (!canComplete) return
 
-    completeTask(task.id, childId, task.points, { setTaskCompleted: true }).catch(() => {})
+    dispatch({
+      type: "COMPLETE_TASK",
+      payload: { taskId: task.id, childId, withTimer },
+    })
 
     setJustCompleted(true)
-    if (state.settings?.showConfetti) {
+    if (state.settings.showConfetti) {
       setShowConfetti(true)
       scheduleConfettiOff()
     } else {
@@ -142,10 +145,9 @@ export function TaskCard({ task, childId, isCompleted, completionsTodayCount = 0
   }
 
   const handleTimerModalComplete = () => {
-    completeTask(task.id, childId, task.points, { setTaskCompleted: true }).catch(() => {})
     setShowTimerModal(false)
     setJustCompleted(true)
-    if (state.settings?.showConfetti) {
+    if (state.settings.showConfetti) {
       setShowConfetti(true)
       scheduleConfettiOff()
     } else {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react"
 import { useFamily } from "@/context/family-context"
+import { requestNotificationPermission, sendNotification } from "@/lib/notifications"
 import type { Task } from "@/types"
 
 // Category emojis for notifications
@@ -24,43 +25,7 @@ function getCurrentDayKey(): string {
   return days[new Date().getDay()]
 }
 
-// Request notification permission
-export async function requestNotificationPermission(): Promise<boolean> {
-  if (!("Notification" in window)) {
-    console.warn("This browser does not support notifications")
-    return false
-  }
-
-  if (Notification.permission === "granted") {
-    return true
-  }
-
-  if (Notification.permission !== "denied") {
-    const permission = await Notification.requestPermission()
-    return permission === "granted"
-  }
-
-  return false
-}
-
-// Send a notification
-function sendNotification(title: string, body: string, icon?: string) {
-  if (!("Notification" in window) || Notification.permission !== "granted") {
-    return
-  }
-
-  try {
-    new Notification(title, {
-      body,
-      icon: icon || "/favicon.ico",
-      badge: "/favicon.ico",
-      tag: `famiapp-${Date.now()}`,
-      requireInteraction: false,
-    })
-  } catch (error) {
-    console.error("Error sending notification:", error)
-  }
-}
+export { requestNotificationPermission }
 
 export function useTaskNotifications() {
   const { state, selectedChild } = useFamily()
@@ -120,7 +85,7 @@ export function useTaskNotifications() {
           body += ` (bis ${task.endTime})`
         }
 
-        sendNotification(title, body, task.emoji)
+        sendNotification(title, body)
         notifiedTasksRef.current.add(notificationKey)
       }
     })

@@ -44,7 +44,9 @@ export function CelebrationOverlay({ trigger, points = 0, message, onComplete, e
   return (
     <>
       {enableConfetti && <Confetti key={confettiKey} active={showConfetti} onComplete={handleConfettiComplete} />}
-      <PointsPopup points={points} show={showPoints} onComplete={() => setShowPoints(false)} variant={variant} />
+      {variant !== "coins" && (
+        <PointsPopup points={points} show={showPoints} onComplete={() => setShowPoints(false)} variant={variant} />
+      )}
 
       {/* Optional Message */}
       {showMessage && message && (

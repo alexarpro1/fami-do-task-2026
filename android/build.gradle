@@ -22,6 +22,13 @@ allprojects {
         google()
         mavenCentral()
     }
+    // Build-Ausgabe der Capacitor-Module aus node_modules in android/build verlagern,
+    // damit unter Windows keine "Unable to delete directory" in node_modules entsteht.
+    afterEvaluate { project ->
+        if (project.path.startsWith(':capacitor-')) {
+            project.buildDir = file("${rootProject.projectDir}/build/subs/${project.name}")
+        }
+    }
 }
 
 task clean(type: Delete) {

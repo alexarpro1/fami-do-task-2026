@@ -2,8 +2,6 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useFamily } from "@/context/family-context"
-import { useTasks } from "@/hooks/useTasks"
-import { mapTaskRecordToTask } from "@/lib/db/mapTaskRecordToTask"
 import type { Task, TaskCategory, TaskDifficulty } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -512,7 +510,6 @@ function InlineTaskForm({
 
 export function TaskManager() {
   const { state, dispatch } = useFamily()
-  const { tasks: powerSyncTasks, addTask: addTaskToSync } = useTasks()
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState<TaskFormData>(defaultFormData)
@@ -525,14 +522,7 @@ export function TaskManager() {
   const [bulkAction, setBulkAction] = useState<"days" | "toggle" | "delete" | null>(null)
   const [bulkDays, setBulkDays] = useState<string[]>([])
 
-  // Aufgaben-Liste: Context (lokal) + PowerSync-Tasks, die noch nicht im Context sind (z. B. von anderem Gerät gesynct)
-  const contextTasks = state?.tasks ?? []
-  const contextIds = new Set(contextTasks.map((t) => t.id))
-  const fromSyncOnly = powerSyncTasks.filter((r) => !contextIds.has(r.id))
-  const tasks: Task[] = [
-    ...contextTasks,
-    ...fromSyncOnly.map((r) => mapTaskRecordToTask(r)),
-  ]
+  const tasks = state?.tasks ?? []
   const sortedTasks = [...tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 
   const checkDuplicate = (title: string, excludeId?: string) => {
@@ -545,7 +535,7 @@ export function TaskManager() {
     checkDuplicate(title, editingId || undefined)
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!formData.title.trim() || duplicateWarning) return
 
     if (editingId) {
@@ -556,15 +546,6 @@ export function TaskManager() {
       setEditingId(null)
     } else {
       dispatch({ type: "ADD_TASK", payload: formData })
-      const assignedTo = state.children?.[0]?.id ?? ""
-      await addTaskToSync(formData.title, assignedTo, formData.points, {
-        category: formData.category,
-        emoji: formData.emoji ?? null,
-        order: sortedTasks.length,
-        is_active: formData.isActive ? 1 : 0,
-        days: formData.days?.length ? JSON.stringify(formData.days) : null,
-        description: formData.note?.trim() || null,
-      })
       setIsAdding(false)
     }
 

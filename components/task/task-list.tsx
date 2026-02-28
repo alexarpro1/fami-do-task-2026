@@ -2,9 +2,7 @@
 
 import { useMemo } from "react"
 import type { Task, TaskCategory } from "@/types"
-import { useTasks } from "@/hooks/useTasks"
-import { useTodayCompletionsForChild } from "@/hooks/useCompletions"
-import { mapTaskRecordToTask } from "@/lib/db/mapTaskRecordToTask"
+import { useFamily } from "@/context/family-context"
 import { TaskCard } from "./task-card"
 import { EmptyState } from "@/components/ui/empty-state"
 
@@ -16,7 +14,8 @@ interface TaskListProps {
 
 function checkTaskAvailability(
   task: Task,
-  countByTaskId: Record<string, number>,
+  childId: string,
+  todayCompletions: { taskId: string; childId: string }[],
 ): {
   isAvailable: boolean
   reason: string | null
@@ -63,10 +62,10 @@ function checkTaskAvailability(
     }
   }
 
-  // 4. Limit check - Has the daily limit been reached? (PowerSync: task_completions heute)
+  // 4. Limit check - Has the daily limit been reached?
   let limitRemaining: number | null = null
   if (task.dailyLimit && task.dailyLimit > 0) {
-    const taskCompletionsToday = countByTaskId[task.id] ?? 0
+    const taskCompletionsToday = todayCompletions.filter((tc) => tc.taskId === task.id && tc.childId === childId).length
     limitRemaining = task.dailyLimit - taskCompletionsToday
 
     if (limitRemaining <= 0) {
@@ -78,19 +77,19 @@ function checkTaskAvailability(
 }
 
 export function TaskList({ category, childId, showHidden = false }: TaskListProps) {
-  const { tasks: taskRecords, isLoading } = useTasks()
-  const { completedTaskIds, countByTaskId } = useTodayCompletionsForChild(childId)
+  const { state, isTaskCompletedToday, todayCompletions } = useFamily()
 
-  const tasks = useMemo(() => taskRecords.map(mapTaskRecordToTask), [taskRecords])
+  const tasks = state.tasks ?? []
 
   const { availableTasks, hiddenTasks } = useMemo(() => {
     const available: (Task & { availability: ReturnType<typeof checkTaskAvailability> })[] = []
     const hidden: (Task & { availability: ReturnType<typeof checkTaskAvailability> })[] = []
 
     for (const task of tasks) {
+      // Category filter
       if (category !== "all" && task.category !== category) continue
 
-      const availability = checkTaskAvailability(task, countByTaskId)
+      const availability = checkTaskAvailability(task, childId, todayCompletions)
 
       if (availability.isAvailable) {
         available.push({ ...task, availability })
@@ -100,34 +99,27 @@ export function TaskList({ category, childId, showHidden = false }: TaskListProp
     }
 
     return { availableTasks: available, hiddenTasks: hidden }
-  }, [tasks, category, countByTaskId])
+  }, [tasks, category, childId, todayCompletions])
 
+  // Sort: incomplete first, then by order
   const sortedTasks = useMemo(() => {
     return [...availableTasks].sort((a, b) => {
-      const aCompleted = completedTaskIds.has(a.id)
-      const bCompleted = completedTaskIds.has(b.id)
+      const aCompleted = isTaskCompletedToday(a.id, childId)
+      const bCompleted = isTaskCompletedToday(b.id, childId)
       if (aCompleted !== bCompleted) return aCompleted ? 1 : -1
 
+      // Sort upcoming tasks after available ones
       if (a.availability.timeStatus === "upcoming" && b.availability.timeStatus !== "upcoming") return 1
       if (b.availability.timeStatus === "upcoming" && a.availability.timeStatus !== "upcoming") return -1
 
       return a.order - b.order
     })
-  }, [availableTasks, completedTaskIds])
+  }, [availableTasks, childId, isTaskCompletedToday])
 
-  const completedCount = sortedTasks.filter((t) => completedTaskIds.has(t.id)).length
+  // Calculate completion stats
+  const completedCount = sortedTasks.filter((t) => isTaskCompletedToday(t.id, childId)).length
   const totalCount = sortedTasks.length
   const completionPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
-
-  if (isLoading) {
-    return (
-      <EmptyState
-        icon="⏳"
-        title="Lade Aufgaben"
-        description="Aufgaben werden geladen…"
-      />
-    )
-  }
 
   if (sortedTasks.length === 0 && hiddenTasks.length === 0) {
     return (
@@ -162,13 +154,7 @@ export function TaskList({ category, childId, showHidden = false }: TaskListProp
       {/* Available Task Cards */}
       <div className="space-y-3">
         {sortedTasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            task={task}
-            childId={childId}
-            isCompleted={completedTaskIds.has(task.id)}
-            completionsTodayCount={countByTaskId[task.id] ?? 0}
-          />
+          <TaskCard key={task.id} task={task} childId={childId} isCompleted={isTaskCompletedToday(task.id, childId)} />
         ))}
       </div>
 

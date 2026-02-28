@@ -65,7 +65,7 @@ export function BottomNavigation() {
     if (!hasMoreItems) return
     if (isMoreActive) {
       setShowMore(true)
-      const t = setTimeout(() => setShowMore(false), 2500)
+      const t = setTimeout(() => setShowMore(false), 5)
       return () => clearTimeout(t)
     }
     setShowMore(false)
@@ -109,7 +109,7 @@ export function BottomNavigation() {
                     <Link
                       key={item.href}
                       href={isDisabled ? "/" : item.href}
-                      onClick={() => setShowMore(false)}
+                      onClick={() => setTimeout(() => setShowMore(false), 5)}
                       className={cn(
                         "flex flex-col items-center justify-center gap-1 p-3 rounded-xl transition-all",
                         isActive && "bg-primary/10",

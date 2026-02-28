@@ -15,6 +15,9 @@ export const GAME_PROGRESS_KEYS = [
   "famiapp-tap-progress",
   "famiapp-tap-best-seconds",
   "famiapp-color-click-progress",
+  "famiapp-math-progress",
+  "famiapp-word-progress",
+  "famiapp-mole-progress",
 ] as const
 
 export type GameProgressKey = (typeof GAME_PROGRESS_KEYS)[number]

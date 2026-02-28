@@ -1,5 +1,30 @@
 # FamiApp - Android APK Build Anleitung
 
+## Versionierte APK-Ordner (build-apk.bat)
+
+Wenn du **`build-apk.bat`** (Doppelklick oder aus dem Projektordner) ausführst:
+
+- Die **Version** wird aus `version.json` gelesen (z. B. **V2.6.0.16**).
+- Die **Release-APK** wird unter dem Android-Build-Ordner in einem **versionsbezogenen Ordner** abgelegt (nichts wird überschrieben):
+  - `android\app\build\outputs\apk\V2.6.0.16\FamiApp-V2.6.0.16.apk`
+  - `android\app\build\outputs\apk\V2.6.0.17\FamiApp-V2.6.0.17.apk` (nächster Build)
+- So findest du alle Versionen unter **`android\app\build\outputs\apk`** und kannst bei Problemen eine ältere Version installieren.
+
+**Hinweis:** Cursor und Android Studio vor dem Lauf schließen, falls der Build mit „Unable to delete directory“ abbricht.
+
+### Wenn `packageDebug` oder `clean` mit "Failed to clean up output files" / "Unable to delete directory" fehlschlägt
+
+Ein anderer Prozess hält Dateien in `android\build` oder `android\app\build` offen.
+
+1. **Android Studio** vollständig schließen (kein Projekt aus diesem Ordner offen).
+2. **Alle Terminals/CMD** schließen, die im Ordner `fami-do-task 2026` oder `android` laufen.
+3. Optional: **Windows Explorer** schließen, falls du in `android\build` oder `app\build` bist.
+4. Neu versuchen:
+   - Im Projektroot: `.\android-clean-run.bat` (führt Gradle-Clean + `cap run android` aus),
+   - oder manuell: `cd android` → `gradlew.bat --stop` → `gradlew.bat clean` → `cd ..` → `npx cap run android`.
+
+---
+
 ## App-Update für Android Studio (schnell)
 
 Wenn du nur ein **Update** bauen willst und das Projekt schon eingerichtet ist:
