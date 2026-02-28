@@ -3,6 +3,8 @@
 import { useState, useMemo, useRef } from "react"
 import type { Task } from "@/types"
 import { useFamily } from "@/context/family-context"
+import { useSupabaseMutations } from "@/hooks/useSupabaseMutations"
+import { triggerSuccess } from "@/lib/haptics"
 import { cn } from "@/lib/utils"
 import { Check, Clock, Play, Pause, RotateCcw, Star, Maximize2, AlertCircle, Ban } from "lucide-react"
 import { useTimer, formatTime } from "@/hooks/use-timer"
@@ -20,6 +22,7 @@ interface TaskCardProps {
 
 export function TaskCard({ task, childId, isCompleted, onComplete }: TaskCardProps) {
   const { dispatch, state, todayCompletions } = useFamily()
+  const { completeTask } = useSupabaseMutations()
   const [showTimer, setShowTimer] = useState(false)
   const [showTimerModal, setShowTimerModal] = useState(false)
   const [showFocusTimer, setShowFocusTimer] = useState(false)
@@ -118,10 +121,8 @@ export function TaskCard({ task, childId, isCompleted, onComplete }: TaskCardPro
   const handleComplete = (withTimer: boolean) => {
     if (!canComplete) return
 
-    dispatch({
-      type: "COMPLETE_TASK",
-      payload: { taskId: task.id, childId, withTimer },
-    })
+    void completeTask(task.id, childId, withTimer, task.points)
+    void triggerSuccess()
 
     setJustCompleted(true)
     if (state.settings.showConfetti) {

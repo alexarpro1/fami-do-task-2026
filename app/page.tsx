@@ -3,6 +3,7 @@
 import { AppShell } from "@/components/layout/app-shell"
 import { EmptyState } from "@/components/ui/empty-state"
 import { useFamily } from "@/context/family-context"
+import { useSupabaseMutations } from "@/hooks/useSupabaseMutations"
 import { Button } from "@/components/ui/button"
 import { WeatherWidget } from "@/components/weather/weather-widget"
 import { MoodSelector } from "@/components/mood/mood-selector"
@@ -19,6 +20,7 @@ import { ChildCard } from "@/components/dashboard/child-card"
 
 export default function HomePage() {
   const { selectedChild, state, isTaskCompletedToday, getTodayCompletionsForChild, dispatch } = useFamily()
+  const { applyRule, redeemReward } = useSupabaseMutations()
   const [showPointsPopup, setShowPointsPopup] = useState(false)
   const [pointsChange, setPointsChange] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
@@ -92,10 +94,7 @@ export default function HomePage() {
   }
 
   const handleRuleApplied = (rule: Rule) => {
-    dispatch({
-      type: "APPLY_RULE",
-      payload: { ruleId: rule.id, childId: selectedChild!.id },
-    })
+    void applyRule(rule.id, selectedChild!.id, rule.points)
 
     setPointsChange(rule.points)
     setShowPointsPopup(true)
@@ -115,10 +114,7 @@ export default function HomePage() {
     const reward = (state.rewards || []).find((r) => r.id === rewardId)
     if (!reward || selectedChild.points < reward.cost) return
 
-    dispatch({
-      type: "REDEEM_REWARD",
-      payload: { rewardId, childId: selectedChild.id },
-    })
+    void redeemReward(rewardId, selectedChild.id, reward.cost)
 
     dispatch({
       type: "REMOVE_FROM_WISHLIST",

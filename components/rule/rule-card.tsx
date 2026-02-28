@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useFamily } from "@/context/family-context"
+import { useSupabaseMutations } from "@/hooks/useSupabaseMutations"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, TrendingDown, Sparkles } from "lucide-react"
@@ -35,10 +36,7 @@ export function RuleCard({ rule, childId, onApply }: RuleCardProps) {
     setIsApplying(true)
     setShowFeedback(true)
 
-    dispatch({
-      type: "APPLY_RULE",
-      payload: { ruleId: rule.id, childId },
-    })
+    void applyRule(rule.id, childId, rule.points)
 
     if (rule.isPositive && state.settings.showConfetti) {
       confetti({

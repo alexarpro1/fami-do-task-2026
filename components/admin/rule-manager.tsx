@@ -16,6 +16,7 @@ import {
   Pencil,
 } from "lucide-react"
 import { useFamily } from "@/context/family-context"
+import { useSupabaseMutations } from "@/hooks/useSupabaseMutations"
 import { Button } from "@/components/ui/button"
 import { DEFAULT_RULES } from "@/lib/constants"
 import { cn } from "@/lib/utils"
@@ -302,6 +303,7 @@ function InlineRuleForm({
 
 export function RuleManager() {
   const { state, dispatch } = useFamily()
+  const { addRule } = useSupabaseMutations()
   const [filter, setFilter] = useState<"all" | "positive" | "negative">("all")
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -338,10 +340,7 @@ export function RuleManager() {
       })
       setEditingId(null)
     } else {
-      dispatch({
-        type: "ADD_RULE",
-        payload: { ...formData, points },
-      })
+      void addRule({ ...formData, points })
       setIsAdding(false)
     }
 
@@ -402,7 +401,7 @@ export function RuleManager() {
   const loadDefaults = () => {
     if (!confirm("Standard-Regeln laden? Bestehende bleiben erhalten.")) return
     DEFAULT_RULES.forEach((rule) => {
-      dispatch({ type: "ADD_RULE", payload: rule })
+      void addRule(rule)
     })
   }
 

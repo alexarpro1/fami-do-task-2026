@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { useFamily } from "@/context/family-context"
+import { useSupabaseMutations } from "@/hooks/useSupabaseMutations"
+import { triggerSuccess } from "@/lib/haptics"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Button } from "@/components/ui/button"
 import { PointsDisplay } from "@/components/points/points-display"
@@ -15,6 +17,7 @@ type SortMode = "default" | "cost-asc" | "cost-desc"
 
 export default function RewardsPage() {
   const { selectedChild, state, dispatch } = useFamily()
+  const { redeemReward } = useSupabaseMutations()
   const [celebration, setCelebration] = useState<{ active: boolean; points: number; message: string }>({
     active: false,
     points: 0,
@@ -96,10 +99,8 @@ export default function RewardsPage() {
     const intervalStatus = getIntervalStatus(rewardId, selectedChild.id, reward.repeatInterval)
     if (!intervalStatus.canRedeem) return
 
-    dispatch({
-      type: "REDEEM_REWARD",
-      payload: { rewardId, childId: selectedChild.id },
-    })
+    void redeemReward(rewardId, selectedChild.id, reward.cost)
+    void triggerSuccess()
 
     setPurchasedId(rewardId)
     setCelebration({

@@ -17,6 +17,7 @@ import { NotificationSettings } from "@/components/settings/notification-setting
 import { VersionBadge, CapacitorInfoBlock } from "@/components/ui/version-badge"
 import { ParentNotificationSettings } from "@/components/settings/parent-notification-settings"
 import { APP_VERSION } from "@/lib/version"
+import { exportBlobAsFile } from "@/lib/export-file"
 import Link from "next/link"
 import {
   Volume2,
@@ -129,7 +130,7 @@ export function SettingsPanel() {
   const [pinError, setPinError] = useState("")
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
 
-  const handleQuickExport = () => {
+  const handleQuickExport = async () => {
     const now = new Date().toISOString()
     const backup = {
       type: "all",
@@ -138,14 +139,8 @@ export function SettingsPanel() {
       state: state,
     }
     const filename = `famido-komplett-backup-${new Date().toLocaleDateString("de-DE").replace(/\./g, "-")}.json`
-
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
+    await exportBlobAsFile(blob, filename)
   }
 
   const updateSetting = (key: string, value: boolean | string | number[]) => {

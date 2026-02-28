@@ -29,6 +29,7 @@ import {
   DEFAULT_IMPORT_OPTIONS,
 } from "@/lib/backup-migration"
 import { pushImportedStateToSupabase } from "../../lib/backup-to-supabase"
+import { exportBlobAsFile } from "@/lib/export-file"
 import { isSupabaseConfigured } from "@/lib/supabase/client"
 import { useSyncId, ensureSyncIdInAuth } from "@/hooks/useSyncId"
 import { APP_VERSION } from "@/lib/version"
@@ -251,8 +252,9 @@ export function SettingsBackup() {
   const [importOptions, setImportOptions] = React.useState<ImportOptions>(DEFAULT_IMPORT_OPTIONS)
   const [validationResult, setValidationResult] = React.useState<ReturnType<typeof validateBackup> | null>(null)
   const [backupItems, setBackupItems] = React.useState<ReturnType<typeof extractBackupItems> | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
-  const exportBackup = (type: "settings" | "data" | "all") => {
+  const exportBackup = async (type: "settings" | "data" | "all") => {
     const now = new Date().toISOString()
     let backup: any
     let filename: string
@@ -292,12 +294,7 @@ export function SettingsBackup() {
     }
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
+    await exportBlobAsFile(blob, filename)
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -447,15 +444,23 @@ export function SettingsBackup() {
       {/* Import Section */}
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">Importieren</p>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input type="file" accept=".json" onChange={handleFileSelect} className="hidden" />
-          <Button variant="outline" className="w-full bg-transparent" asChild>
-            <span className="flex items-center gap-2">
-              <Upload className="w-4 h-4" />
-              Backup-Datei auswählen
-            </span>
-          </Button>
-        </label>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleFileSelect}
+          className="hidden"
+          aria-hidden
+        />
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full bg-transparent flex items-center gap-2"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload className="w-4 h-4" />
+          Backup-Datei auswählen
+        </Button>
         {importError && !showImportModal && (
           <p className="text-sm text-destructive flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" />
@@ -479,7 +484,7 @@ export function SettingsBackup() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-card rounded-2xl p-4 sm:p-6 max-w-lg w-full shadow-xl max-h-[90vh] overflow-y-auto"
+              className="bg-card rounded-2xl p-4 sm:p-6 max-w-lg w-full shadow-xl max-h-[90vh] overflow-y-auto flex flex-col"
             >
               {importSuccess ? (
                 <div className="text-center py-4">
@@ -516,41 +521,44 @@ export function SettingsBackup() {
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between gap-3 mb-4 pb-2 border-b border-border/60">
                     <h3 className="font-semibold text-lg text-foreground">Import bestätigen</h3>
-                    <button onClick={closeModal} className="p-1 hover:bg-secondary rounded-lg">
-                      <X className="w-5 h-5" />
+                    <button onClick={closeModal} className="p-1.5 hover:bg-secondary rounded-lg transition-colors" aria-label="Schließen">
+                      <X className="w-5 h-5 text-muted-foreground" />
                     </button>
                   </div>
 
-                  <div className="space-y-3 mb-4">
+                  <div className="space-y-4 flex-1 min-h-0">
                     {/* Backup Info */}
                     {validationResult && (
-                      <div className="bg-secondary/50 rounded-lg p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Format</span>
-                          <span className="font-medium text-sm">
-                            {validationResult.format === "new"
-                              ? "Neues Format"
-                              : validationResult.format === "legacy"
-                                ? "Altes Format (wird konvertiert)"
-                                : "Unbekannt"}
-                          </span>
-                        </div>
-                        {importData.exportedAt && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">Erstellt am</span>
-                            <span className="font-medium text-sm">
-                              {new Date(importData.exportedAt).toLocaleString("de-DE")}
+                      <div className="bg-muted/40 rounded-xl p-4 border border-border/50">
+                        <p className="text-xs font-medium text-muted-foreground mb-3">Backup-Info</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                          <div>
+                            <span className="block text-xs text-muted-foreground mb-0.5">Format</span>
+                            <span className="font-medium text-foreground">
+                              {validationResult.format === "new"
+                                ? "Neues Format"
+                                : validationResult.format === "legacy"
+                                  ? "Altes Format (wird konvertiert)"
+                                  : "Unbekannt"}
                             </span>
                           </div>
-                        )}
-                        {importData.version && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">Version</span>
-                            <span className="font-medium text-sm">v{importData.version}</span>
-                          </div>
-                        )}
+                          {importData.exportedAt && (
+                            <div>
+                              <span className="block text-xs text-muted-foreground mb-0.5">Erstellt am</span>
+                              <span className="font-medium text-foreground">
+                                {new Date(importData.exportedAt).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            </div>
+                          )}
+                          {importData.version && (
+                            <div>
+                              <span className="block text-xs text-muted-foreground mb-0.5">Version</span>
+                              <span className="font-medium text-foreground">v{importData.version}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
 
@@ -578,11 +586,13 @@ export function SettingsBackup() {
                     )}
 
                     {validationResult && validationResult.isValid && importData.type !== "settings" && backupItems && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">Import-Optionen</p>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Klicke auf eine Kategorie, um die Details zu sehen und wähle dann die gewünschte Option.
-                        </p>
+                      <div className="space-y-3">
+                        <div className="pt-1">
+                          <p className="text-sm font-medium text-foreground">Import-Optionen</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Klicke auf eine Kategorie, um die Details zu sehen und wähle die gewünschte Option.
+                          </p>
+                        </div>
 
                         <MergeOptionSelector
                           label="Kinder"
@@ -669,8 +679,8 @@ export function SettingsBackup() {
                     )}
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={closeModal} className="flex-1 bg-transparent">
+                  <div className="flex gap-3 pt-4 mt-4 border-t border-border/60 shrink-0">
+                    <Button variant="outline" onClick={closeModal} className="flex-1">
                       Abbrechen
                     </Button>
                     <Button

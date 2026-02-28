@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { useFamily } from "@/context/family-context"
+import { useSupabaseMutations } from "@/hooks/useSupabaseMutations"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,7 +18,7 @@ interface AddChildFormProps {
 }
 
 export function AddChildForm({ onSuccess, onCancel }: AddChildFormProps) {
-  const { dispatch } = useFamily()
+  const { addChild } = useSupabaseMutations()
   const [name, setName] = useState("")
   const [age, setAge] = useState("")
   const [avatar, setAvatar] = useState(AVATARS[0])
@@ -27,14 +28,11 @@ export function AddChildForm({ onSuccess, onCancel }: AddChildFormProps) {
     e.preventDefault()
     if (!name.trim()) return
 
-    dispatch({
-      type: "ADD_CHILD",
-      payload: {
-        name: name.trim(),
-        age: Number.parseInt(age) || 0,
-        avatar,
-        color,
-      },
+    void addChild({
+      name: name.trim(),
+      age: Number.parseInt(age) || 0,
+      avatar,
+      color,
     })
 
     onSuccess?.()

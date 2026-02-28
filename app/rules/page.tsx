@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { useFamily } from "@/context/family-context"
+import { useSupabaseMutations } from "@/hooks/useSupabaseMutations"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Button } from "@/components/ui/button"
 import { PointsDisplay } from "@/components/points/points-display"
@@ -90,10 +91,7 @@ export default function RulesPage() {
     const intervalStatus = getIntervalStatus(ruleId, selectedChild.id, rule.repeatInterval)
     if (!intervalStatus.canApply) return
 
-    dispatch({
-      type: "APPLY_RULE",
-      payload: { ruleId, childId: selectedChild.id },
-    })
+    void applyRule(ruleId, selectedChild.id, rule.points)
 
     setAppliedId(ruleId)
 

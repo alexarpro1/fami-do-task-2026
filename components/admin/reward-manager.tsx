@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Plus, Trash2, Check, X, Coins, ChevronUp, ChevronDown, ShoppingBag, Pencil } from "lucide-react"
 import { useFamily } from "@/context/family-context"
+import { useSupabaseMutations } from "@/hooks/useSupabaseMutations"
+import { triggerSuccess } from "@/lib/haptics"
 import { Button } from "@/components/ui/button"
 import { DEFAULT_REWARDS } from "@/lib/constants"
 import { cn } from "@/lib/utils"
@@ -153,6 +155,7 @@ function InlineRewardForm({
 
 export function RewardManager() {
   const { state, dispatch } = useFamily()
+  const { addReward } = useSupabaseMutations()
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingReward, setEditingReward] = useState<string | null>(null)
   const [formData, setFormData] = useState<Partial<Reward>>({
@@ -191,20 +194,17 @@ export function RewardManager() {
         },
       })
     } else {
-      dispatch({
-        type: "ADD_REWARD",
-        payload: {
-          name: formData.name!,
-          emoji: formData.emoji!,
-          cost: formData.cost || 50,
-          category: formData.category || "item",
-          description: formData.description,
-          isActive: true,
-          dailyLimit: formData.dailyLimit,
-          repeatInterval: formData.repeatInterval,
-          order: rewards.length,
-        },
+      void addReward({
+        name: formData.name!,
+        emoji: formData.emoji!,
+        cost: formData.cost || 50,
+        category: formData.category || "item",
+        description: formData.description,
+        isActive: true,
+        dailyLimit: formData.dailyLimit,
+        repeatInterval: formData.repeatInterval,
       })
+      void triggerSuccess()
     }
     resetForm()
   }
@@ -243,8 +243,9 @@ export function RewardManager() {
   const loadDefaults = () => {
     if (!confirm("Standard-Belohnungen laden? Bestehende bleiben erhalten.")) return
     DEFAULT_REWARDS.forEach((reward) => {
-      dispatch({ type: "ADD_REWARD", payload: reward })
+      void addReward(reward)
     })
+    void triggerSuccess()
   }
 
   return (

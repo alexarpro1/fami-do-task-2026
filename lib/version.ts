@@ -9,7 +9,7 @@ export const APP_VERSION = {
   major: 2,
   minor: 6,
   patch: 0,
-  build: 27,
+  build: 29,
 
   get full(): string {
     return `${this.major}.${this.minor}.${this.patch}.${this.build}`
@@ -51,7 +51,7 @@ export function parseVersionString(s: string): ParsedVersion | null {
 
 // Build info
 export const BUILD_INFO = {
-  timestamp: new Date("2026-02-28T00:42:24.051Z"),
+  timestamp: new Date("2026-02-28T02:48:43.510Z"),
   get formatted(): string {
     return this.timestamp.toLocaleDateString("de-DE", {
       day: "2-digit",

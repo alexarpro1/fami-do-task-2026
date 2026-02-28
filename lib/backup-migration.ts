@@ -1,6 +1,97 @@
 import type { FamilyState, Child, Task, Reward, Rule, TaskCategory, TaskDifficulty } from "@/types"
 import { DEFAULT_SETTINGS, generateId } from "@/lib/constants"
 
+/** Phase 15.5: Normalisierung für Backup-Import – fehlende Felder (alte Backup-Versionen) werden mit 0/Default belegt, kein Fehler. */
+
+function normalizeChildFromBackup(raw: any, index: number): Child {
+  const now = new Date().toISOString()
+  return {
+    id: typeof raw?.id === "string" ? raw.id : generateId(),
+    name: typeof raw?.name === "string" ? raw.name : `Kind ${index + 1}`,
+    age: typeof raw?.age === "number" ? raw.age : 0,
+    avatar: typeof raw?.avatar === "string" ? raw.avatar : "👤",
+    color: typeof raw?.color === "string" ? raw.color : "#94a3b8",
+    points: typeof raw?.points === "number" ? raw.points : 0,
+    totalPointsEarned: typeof raw?.totalPointsEarned === "number" ? raw.totalPointsEarned : 0,
+    createdAt: typeof raw?.createdAt === "string" ? raw.createdAt : now,
+    level: raw?.level,
+    wishlistRewardIds: Array.isArray(raw?.wishlistRewardIds) ? raw.wishlistRewardIds : undefined,
+    currentStreak: raw?.currentStreak,
+    longestStreak: raw?.longestStreak,
+    lastActiveDate: raw?.lastActiveDate,
+    achievements: Array.isArray(raw?.achievements) ? raw.achievements : undefined,
+    gameGoldCoins: typeof raw?.gameGoldCoins === "number" ? raw.gameGoldCoins : undefined,
+  }
+}
+
+function normalizeTaskFromBackup(raw: any, index: number): Task {
+  return {
+    id: typeof raw?.id === "string" ? raw.id : generateId(),
+    title: typeof raw?.title === "string" ? raw.title : "Aufgabe",
+    description: raw?.description,
+    note: raw?.note,
+    points: typeof raw?.points === "number" ? raw.points : 5,
+    category: normalizeTaskCategory(raw?.category),
+    difficulty: normalizeDifficulty(raw?.difficulty),
+    emoji: typeof raw?.emoji === "string" ? raw.emoji : "⭐",
+    duration: typeof raw?.duration === "number" ? raw.duration : undefined,
+    days: convertDays(raw?.days),
+    isActive: raw?.isActive !== false,
+    order: typeof raw?.order === "number" ? raw.order : index,
+    dailyLimit: raw?.dailyLimit,
+    usageCount: raw?.usageCount,
+    startTime: raw?.startTime,
+    endTime: raw?.endTime,
+    repeatInterval: raw?.repeatInterval,
+    timerOptions:
+      raw?.timerOptions && typeof raw.timerOptions === "object"
+        ? {
+            showMiniTimer: raw.timerOptions.showMiniTimer !== false,
+            showVisualTimer: raw.timerOptions.showVisualTimer !== false,
+            showFocusTimer: raw.timerOptions.showFocusTimer !== false,
+          }
+        : { showMiniTimer: true, showVisualTimer: true, showFocusTimer: true },
+  }
+}
+
+function normalizeRewardFromBackup(raw: any): Reward {
+  const category = raw?.category
+  const validCategory = ["experience", "privilege", "item", "special"].includes(category) ? category : "item"
+  return {
+    id: typeof raw?.id === "string" ? raw.id : generateId(),
+    name: typeof raw?.name === "string" ? raw.name : "Belohnung",
+    description: raw?.description,
+    cost: typeof raw?.cost === "number" ? raw.cost : 0,
+    emoji: typeof raw?.emoji === "string" ? raw.emoji : "🎁",
+    category: validCategory,
+    isActive: raw?.isActive !== false,
+    stock: raw?.stock,
+    dailyLimit: raw?.dailyLimit,
+    repeatInterval: raw?.repeatInterval,
+    purchaseCount: raw?.purchaseCount,
+  }
+}
+
+function normalizeRuleFromBackup(raw: any, index: number): Rule {
+  const points = typeof raw?.points === "number" ? raw.points : 0
+  const category = raw?.category
+  const validCategory = ["behavior", "homework", "chores", "social", "custom"].includes(category) ? category : "behavior"
+  return {
+    id: typeof raw?.id === "string" ? raw.id : generateId(),
+    title: typeof raw?.title === "string" ? raw.title : "Regel",
+    description: raw?.description,
+    points,
+    isPositive: raw?.isPositive !== undefined ? !!raw.isPositive : points >= 0,
+    emoji: typeof raw?.emoji === "string" ? raw.emoji : "⚖️",
+    category: validCategory,
+    dailyLimit: raw?.dailyLimit,
+    repeatInterval: raw?.repeatInterval,
+    isActive: raw?.isActive !== false,
+    order: typeof raw?.order === "number" ? raw.order : index,
+    usageCount: raw?.usageCount,
+  }
+}
+
 // Legacy Backup Format (old app structure)
 interface LegacyUser {
   id: string
@@ -181,7 +272,7 @@ export function validateBackup(data: any): ValidationResult {
     }
 
     if (data.type === "data" || data.type === "all") {
-      const source = data.type === "all" ? data.state : data
+      const source = data.type === "all" ? (data.state || {}) : data
       hasChildren = Array.isArray(source.children) && source.children.length > 0
       hasTasks = Array.isArray(source.tasks) && source.tasks.length > 0
       hasRewards = Array.isArray(source.rewards) && source.rewards.length > 0
@@ -425,32 +516,51 @@ export function importBackupWithMigration(
           }
           break
 
-        case "data":
+        case "data": {
+          const backupChildren = (data.children || []).map((c: any, i: number) => normalizeChildFromBackup(c, i))
+          const backupTasks = (data.tasks || []).map((t: any, i: number) => normalizeTaskFromBackup(t, i))
+          const backupRewards = (data.rewards || []).map((r: any) => normalizeRewardFromBackup(r))
+          const backupRules = (data.rules || []).map((r: any, i: number) => normalizeRuleFromBackup(r, i))
           importedState = {
             ...currentState,
-            children: mergeArrays(currentState.children, data.children || [], options.mergeChildren),
-            tasks: mergeArrays(currentState.tasks, data.tasks || [], options.mergeTasks),
-            rewards: mergeArrays(currentState.rewards, data.rewards || [], options.mergeRewards),
-            rules: mergeArrays(currentState.rules, data.rules || [], options.mergeRules),
+            children: mergeArrays(currentState.children, backupChildren, options.mergeChildren),
+            tasks: mergeArrays(currentState.tasks, backupTasks, options.mergeTasks),
+            rewards: mergeArrays(currentState.rewards, backupRewards, options.mergeRewards),
+            rules: mergeArrays(currentState.rules, backupRules, options.mergeRules),
             pets: mergeArrays(currentState.pets || [], data.pets || [], options.mergePets ?? "use-backup"),
             lastUpdated: new Date().toISOString(),
           }
           break
+        }
 
-        case "all":
+        case "all": {
+          const state = data.state || {}
+          const backupChildren = (state.children || []).map((c: any, i: number) => normalizeChildFromBackup(c, i))
+          const backupTasks = (state.tasks || []).map((t: any, i: number) => normalizeTaskFromBackup(t, i))
+          const backupRewards = (state.rewards || []).map((r: any) => normalizeRewardFromBackup(r))
+          const backupRules = (state.rules || []).map((r: any, i: number) => normalizeRuleFromBackup(r, i))
           importedState = {
             ...currentState,
-            settings: { ...DEFAULT_SETTINGS, ...data.state.settings },
-            children: mergeArrays(currentState.children, data.state.children || [], options.mergeChildren),
-            tasks: mergeArrays(currentState.tasks, data.state.tasks || [], options.mergeTasks),
-            rewards: mergeArrays(currentState.rewards, data.state.rewards || [], options.mergeRewards),
-            rules: mergeArrays(currentState.rules, data.state.rules || [], options.mergeRules),
-            pets: mergeArrays(currentState.pets || [], data.state.pets || [], options.mergePets ?? "use-backup"),
-            stickerCollections: data.state.stickerCollections || currentState.stickerCollections,
-            selectedChildId: data.state.selectedChildId || currentState.selectedChildId,
+            settings: { ...DEFAULT_SETTINGS, ...(state.settings || {}) },
+            children: mergeArrays(currentState.children, backupChildren, options.mergeChildren),
+            tasks: mergeArrays(currentState.tasks, backupTasks, options.mergeTasks),
+            rewards: mergeArrays(currentState.rewards, backupRewards, options.mergeRewards),
+            rules: mergeArrays(currentState.rules, backupRules, options.mergeRules),
+            pets: mergeArrays(currentState.pets || [], state.pets || [], options.mergePets ?? "use-backup"),
+            taskCompletions: Array.isArray(state.taskCompletions) ? state.taskCompletions : currentState.taskCompletions,
+            rewardRedemptions: Array.isArray(state.rewardRedemptions) ? state.rewardRedemptions : currentState.rewardRedemptions,
+            ruleApplications: Array.isArray(state.ruleApplications) ? state.ruleApplications : currentState.ruleApplications,
+            pointAdjustments: Array.isArray(state.pointAdjustments) ? state.pointAdjustments : currentState.pointAdjustments,
+            stickerCollections: Array.isArray(state.stickerCollections) ? state.stickerCollections : currentState.stickerCollections,
+            selectedChildId: state.selectedChildId ?? currentState.selectedChildId,
+            moodEntries: Array.isArray(state.moodEntries) ? state.moodEntries : currentState.moodEntries,
+            weather: state.weather ?? currentState.weather,
+            schoolTimes: Array.isArray(state.schoolTimes) ? state.schoolTimes : currentState.schoolTimes,
+            achievements: Array.isArray(state.achievements) ? state.achievements : currentState.achievements,
             lastUpdated: new Date().toISOString(),
           }
           break
+        }
 
         default:
           return {

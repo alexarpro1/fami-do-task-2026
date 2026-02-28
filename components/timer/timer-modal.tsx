@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { VisualTimer, type TimerTheme } from "./visual-timer"
 import { useTimer } from "@/hooks/use-timer"
 import { useFamily } from "@/context/family-context"
+import { useSupabaseMutations } from "@/hooks/useSupabaseMutations"
 import type { Task } from "@/types"
 
 interface TimerModalProps {
@@ -44,10 +45,7 @@ export function TimerModal({ task, childId, onClose, onComplete }: TimerModalPro
       } catch {}
     }
 
-    dispatch({
-      type: "COMPLETE_TASK",
-      payload: { taskId: task.id, childId, withTimer: true },
-    })
+    void completeTask(task.id, childId, true, task.points)
 
     setEarnedPoints(task.points)
     if (state.settings.showConfetti) setShowConfetti(true)
@@ -58,10 +56,7 @@ export function TimerModal({ task, childId, onClose, onComplete }: TimerModalPro
   }
 
   const handleManualComplete = () => {
-    dispatch({
-      type: "COMPLETE_TASK",
-      payload: { taskId: task.id, childId, withTimer: true },
-    })
+    void completeTask(task.id, childId, true, task.points)
 
     setEarnedPoints(task.points)
     if (state.settings.showConfetti) setShowConfetti(true)

@@ -1,10 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSyncId } from "@/hooks/useSyncId"
+import { useSyncId, ensureSyncIdInAuth } from "@/hooks/useSyncId"
 import { useFamily } from "@/context/family-context"
 import { useConnectedDevices, type ConnectedDevice } from "@/hooks/useConnectedDevices"
 import { isSupabaseConfigured } from "@/lib/supabase/client"
+import { fetchCloudPreview, type CloudPreviewResult } from "@/lib/supabase-sync"
+import { pushImportedStateToSupabase } from "@/lib/backup-to-supabase"
+import { triggerSuccess, triggerError, triggerHeavy } from "@/lib/haptics"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -36,6 +39,7 @@ import {
   Scale,
   Users,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react"
 
 function DeviceIcon({ device }: { device: ConnectedDevice }) {
@@ -84,6 +88,11 @@ export function CloudSyncPanel() {
   const [apiConfigured, setApiConfigured] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false)
+  const [showSafePairingModal, setShowSafePairingModal] = useState(false)
+  const [pendingLinkCode, setPendingLinkCode] = useState("")
+  const [cloudPreview, setCloudPreview] = useState<CloudPreviewResult | null>(null)
+  const [linkLoading, setLinkLoading] = useState(false)
+  const [uploadingLocal, setUploadingLocal] = useState(false)
 
   useEffect(() => {
     fetch("/api/supabase-config")
@@ -149,7 +158,7 @@ export function CloudSyncPanel() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleLink = () => {
+  const handleLink = async () => {
     const code = linkCode.replace(/\s/g, "").toUpperCase().slice(0, 6)
     if (code.length !== 6) {
       setLinkError("Bitte einen 6-stelligen Code eingeben.")
@@ -160,11 +169,72 @@ export function CloudSyncPanel() {
       return
     }
     setLinkError(null)
-    setSyncId(code)
-    setLinkCode("")
+    setLinkLoading(true)
+    try {
+      const preview = await fetchCloudPreview(code)
+      setCloudPreview(preview)
+      setPendingLinkCode(code)
+      setShowSafePairingModal(true)
+    } catch (e) {
+      setLinkError("Cloud-Vorschau konnte nicht geladen werden.")
+      setCloudPreview(null)
+      setPendingLinkCode(code)
+      setShowSafePairingModal(true)
+    } finally {
+      setLinkLoading(false)
+    }
+  }
+
+  const handleUseCloudData = () => {
+    if (pendingLinkCode) {
+      setSyncId(pendingLinkCode)
+      setLinkCode("")
+      setPendingLinkCode("")
+      setCloudPreview(null)
+      setShowSafePairingModal(false)
+      void triggerSuccess()
+    }
+  }
+
+  const handleUploadLocal = async () => {
+    if (!pendingLinkCode) return
+    void triggerHeavy()
+    setUploadingLocal(true)
+    try {
+      const auth = await ensureSyncIdInAuth(pendingLinkCode)
+      if (!auth.ok) {
+        setLinkError("Anmeldung für Cloud fehlgeschlagen.")
+        setUploadingLocal(false)
+        void triggerError()
+        return
+      }
+      const result = await pushImportedStateToSupabase(state, pendingLinkCode, auth.client)
+      if (!result.ok) {
+        setLinkError(result.error ?? "Hochladen fehlgeschlagen.")
+        setUploadingLocal(false)
+        void triggerError()
+        return
+      }
+      setSyncId(pendingLinkCode)
+      setLinkCode("")
+      setPendingLinkCode("")
+      setCloudPreview(null)
+      setShowSafePairingModal(false)
+      setLinkError(null)
+      void triggerSuccess()
+    } finally {
+      setUploadingLocal(false)
+    }
+  }
+
+  const handleCancelPairing = () => {
+    setShowSafePairingModal(false)
+    setPendingLinkCode("")
+    setCloudPreview(null)
   }
 
   const handleDisconnect = async () => {
+    void triggerHeavy()
     await disconnectCurrentDevice()
     setDisconnectDialogOpen(false)
   }
@@ -178,6 +248,13 @@ export function CloudSyncPanel() {
   const rewardCount = state.rewards.filter((r) => r.isActive !== false).length
   const childCount = state.children.length
   const ruleCount = state.rules.filter((r) => r.isActive !== false).length
+
+  const cloudDataSum =
+    (cloudPreview?.children_count ?? 0) +
+    (cloudPreview?.tasks_count ?? 0) +
+    (cloudPreview?.rewards_count ?? 0)
+  const isCodeNotFound =
+    showSafePairingModal && cloudPreview !== null && cloudDataSum === 0
 
   return (
     <div className="space-y-4">
@@ -315,13 +392,91 @@ export function CloudSyncPanel() {
             className="font-mono tracking-widest text-center rounded-lg"
             maxLength={6}
           />
-          <Button onClick={handleLink} className="rounded-lg gap-1 shrink-0">
-            <Smartphone className="w-4 h-4" />
-            Koppeln
+          <Button
+            onClick={handleLink}
+            className="rounded-lg gap-1 shrink-0"
+            disabled={linkLoading}
+          >
+            {linkLoading ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Smartphone className="w-4 h-4" />
+            )}
+            {linkLoading ? "Laden…" : "Koppeln"}
           </Button>
         </div>
         {linkError && <p className="text-xs text-destructive mt-1">{linkError}</p>}
       </div>
+
+      <AlertDialog open={showSafePairingModal} onOpenChange={(open) => !open && handleCancelPairing()}>
+        <AlertDialogContent className="w-[min(32rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] min-h-[18rem]">
+          {isCodeNotFound ? (
+            <>
+              <AlertDialogHeader>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-8 w-8 shrink-0 text-amber-500" aria-hidden />
+                  <AlertDialogTitle>Familiencode nicht gefunden!</AlertDialogTitle>
+                </div>
+                <AlertDialogDescription asChild>
+                  <p className="text-left mt-2">
+                    Unter dem Code &quot;{pendingLinkCode || "…"}&quot; wurden keine Daten gefunden. Hast du dich vertippt? Oder möchtest du unter genau diesem Code eine komplett neue Familie anlegen?
+                  </p>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                <AlertDialogCancel onClick={handleCancelPairing}>Abbrechen</AlertDialogCancel>
+                <Button onClick={handleUploadLocal} disabled={uploadingLocal}>
+                  {uploadingLocal ? "Wird angelegt…" : "Als neue Familie anlegen"}
+                </Button>
+              </AlertDialogFooter>
+            </>
+          ) : (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Gerät koppeln – Daten wählen</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="text-left mt-1 space-y-4">
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      Wähle, welche Daten fortan gelten sollen. Bei „Lokale Daten hochladen“ werden bestehende Cloud-Daten überschrieben.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-4 min-h-[5.75rem] flex flex-col min-w-0 w-[200px] justify-start items-center">
+                        <p className="text-xs font-medium text-muted-foreground mb-2 shrink-0 flex flex-col justify-start items-center">Auf diesem Gerät</p>
+                        <p className="text-sm text-foreground leading-snug break-words flex flex-col justify-center items-center">
+                          {taskCount} {taskCount === 1 ? "Aufgabe" : "Aufgaben"}, {childCount} {childCount === 1 ? "Kind" : "Kinder"}, {rewardCount} {rewardCount === 1 ? "Belohnung" : "Belohnungen"}, {ruleCount} {ruleCount === 1 ? "Regel" : "Regeln"}.
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-4 min-h-[5.75rem] flex flex-col min-w-0 w-[200px] justify-start items-center">
+                        <p className="text-xs font-medium text-muted-foreground mb-2 shrink-0 flex flex-col justify-start items-center">In der Cloud (Code {pendingLinkCode || "…"})</p>
+                        <p className="text-sm text-foreground leading-snug break-words flex flex-col justify-center items-center">
+                          {cloudPreview?.error
+                            ? "Vorschau nicht verfügbar."
+                            : `${cloudPreview?.tasks_count ?? "–"} Aufgaben, ${cloudPreview?.children_count ?? "–"} ${(cloudPreview?.children_count ?? 0) === 1 ? "Kind" : "Kinder"}, ${cloudPreview?.rewards_count ?? "–"} Belohnungen.`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col sm:flex-row gap-3 pt-2 border-t border-border/50 mt-1">
+                <AlertDialogCancel onClick={handleCancelPairing}>Abbrechen</AlertDialogCancel>
+                <Button
+                  variant="destructive"
+                  className="w-[170px] sm:mr-auto order-last sm:order-none"
+                  onClick={handleUploadLocal}
+                  disabled={uploadingLocal}
+                  title="Bestehende Cloud-Daten werden überschrieben."
+                >
+                  {uploadingLocal ? "Wird hochgeladen…" : "Lokale Daten hochladen"}
+                </Button>
+                <AlertDialogAction onClick={handleUseCloudData} className="w-[180px]">
+                  Cloud-Daten übernehmen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* 6. Gerät trennen */}
       <Button

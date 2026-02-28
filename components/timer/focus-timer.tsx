@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useFamily } from "@/context/family-context"
+import { useSupabaseMutations } from "@/hooks/useSupabaseMutations"
+import { triggerSuccess } from "@/lib/haptics"
 import type { Task } from "@/types"
 import { X, Check, Pause, Play, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -15,7 +17,8 @@ interface FocusTimerProps {
 }
 
 export function FocusTimer({ task, onClose, theme = "circle" }: FocusTimerProps) {
-  const { dispatch, state } = useFamily()
+  const { state } = useFamily()
+  const { completeTask } = useSupabaseMutations()
   const duration = (task.duration || 5) * 60
   const [timeLeft, setTimeLeft] = useState(duration)
   const [isActive, setIsActive] = useState(true)
@@ -53,11 +56,9 @@ export function FocusTimer({ task, onClose, theme = "circle" }: FocusTimerProps)
     setEarnedPoints(points)
 
     if (state.selectedChildId) {
-      dispatch({
-        type: "COMPLETE_TASK",
-        payload: { taskId: task.id, childId: state.selectedChildId, withTimer: true },
-      })
+      void completeTask(task.id, state.selectedChildId, true, points)
     }
+    void triggerSuccess()
 
     if (state.settings.showConfetti) setShowConfetti(true)
 

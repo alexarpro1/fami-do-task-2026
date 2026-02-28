@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useFamily } from "@/context/family-context"
+import { useSupabaseMutations } from "@/hooks/useSupabaseMutations"
 import type { Task, TaskCategory, TaskDifficulty } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -510,6 +511,7 @@ function InlineTaskForm({
 
 export function TaskManager() {
   const { state, dispatch } = useFamily()
+  const { addTask } = useSupabaseMutations()
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState<TaskFormData>(defaultFormData)
@@ -545,7 +547,23 @@ export function TaskManager() {
       })
       setEditingId(null)
     } else {
-      dispatch({ type: "ADD_TASK", payload: formData })
+      void addTask({
+        title: formData.title,
+        description: formData.note,
+        note: formData.note,
+        points: formData.points,
+        category: formData.category,
+        difficulty: formData.difficulty,
+        emoji: formData.emoji,
+        duration: formData.duration,
+        days: formData.days,
+        isActive: formData.isActive,
+        dailyLimit: formData.dailyLimit,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        repeatInterval: formData.repeatInterval,
+        timerOptions: formData.timerOptions,
+      })
       setIsAdding(false)
     }
 

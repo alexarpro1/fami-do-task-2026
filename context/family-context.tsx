@@ -99,9 +99,10 @@ function familyReducer(state: FamilyState, action: FamilyAction): FamilyState {
 
   switch (action.type) {
     case "ADD_CHILD": {
+      const payload = action.payload as { id?: string } & typeof action.payload
       const newChild: Child = {
         ...action.payload,
-        id: generateId(),
+        id: payload.id ?? generateId(),
         points: 0,
         totalPointsEarned: 0,
         createdAt: now,
@@ -249,7 +250,12 @@ function familyReducer(state: FamilyState, action: FamilyAction): FamilyState {
     }
 
     case "ADD_TASK": {
-      const newTask: Task = { ...action.payload, id: generateId(), order: (state.tasks || []).length }
+      const payload = action.payload as { id?: string; order?: number } & typeof action.payload
+      const newTask: Task = {
+        ...action.payload,
+        id: payload.id ?? generateId(),
+        order: payload.order ?? (state.tasks || []).length,
+      }
       return { ...state, tasks: [...(state.tasks || []), newTask], lastUpdated: now }
     }
 
@@ -282,8 +288,9 @@ function familyReducer(state: FamilyState, action: FamilyAction): FamilyState {
         if (todayCompletions.length >= task.dailyLimit) return state
       }
 
+      const payloadId = (action.payload as { completionId?: string }).completionId
       const completion: TaskCompletion = {
-        id: generateId(),
+        id: payloadId ?? generateId(),
         taskId: action.payload.taskId,
         childId: action.payload.childId,
         completedAt: now,
@@ -416,7 +423,8 @@ function familyReducer(state: FamilyState, action: FamilyAction): FamilyState {
     }
 
     case "ADD_REWARD": {
-      const newReward: Reward = { ...action.payload, id: generateId() }
+      const payload = action.payload as { id?: string } & typeof action.payload
+      const newReward: Reward = { ...action.payload, id: payload.id ?? generateId() }
       return { ...state, rewards: [...(state.rewards || []), newReward], lastUpdated: now }
     }
 
@@ -445,8 +453,9 @@ function familyReducer(state: FamilyState, action: FamilyAction): FamilyState {
       const child = (state.children || []).find((c) => c.id === action.payload.childId)
       if (!child || child.points < reward.cost) return state
 
+      const redemptionId = (action.payload as { redemptionId?: string }).redemptionId
       const redemption: RewardRedemption = {
-        id: generateId(),
+        id: redemptionId ?? generateId(),
         rewardId: action.payload.rewardId,
         childId: action.payload.childId,
         redeemedAt: now,
@@ -488,7 +497,8 @@ function familyReducer(state: FamilyState, action: FamilyAction): FamilyState {
     }
 
     case "ADD_RULE": {
-      const newRule: Rule = { ...action.payload, id: generateId() }
+      const payload = action.payload as { id?: string } & typeof action.payload
+      const newRule: Rule = { ...action.payload, id: payload.id ?? generateId() }
       return { ...state, rules: [...(state.rules || []), newRule], lastUpdated: now }
     }
 
@@ -521,12 +531,13 @@ function familyReducer(state: FamilyState, action: FamilyAction): FamilyState {
         if (todayApplications.length >= rule.dailyLimit) return state
       }
 
+      const ruleApplicationId = (action.payload as { ruleApplicationId?: string }).ruleApplicationId
       return {
         ...state,
         ruleApplications: [
           ...(state.ruleApplications || []),
           {
-            id: generateId(),
+            id: ruleApplicationId ?? generateId(),
             ruleId: action.payload.ruleId,
             childId: action.payload.childId,
             appliedAt: now,
