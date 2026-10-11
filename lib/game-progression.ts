@@ -40,6 +40,8 @@ export function applyXpAndGetBonuses(
 ): {
   xp: number
   level: number
+  previousLevel: number
+  leveledUp: boolean
   bonusClaimedLevels: number[]
   bonusCoins: number
   newBonusLevels: BonusLevel[]
@@ -67,6 +69,8 @@ export function applyXpAndGetBonuses(
   return {
     xp: nextXp,
     level: nextLevel,
+    previousLevel: prevLevel,
+    leveledUp: nextLevel > prevLevel,
     bonusClaimedLevels,
     bonusCoins,
     newBonusLevels: newlyReachedLevels,

@@ -239,7 +239,7 @@ function extractBackupItems(data: any) {
   return { children: [], tasks: [], rewards: [], rules: [], pets: [] }
 }
 
-export function SettingsBackup() {
+export function SettingsBackup({ chooseLocation = false }: { chooseLocation?: boolean }) {
   const { state, dispatch } = useFamily()
   const { syncId } = useSyncId()
   const [showImportModal, setShowImportModal] = React.useState(false)
@@ -294,7 +294,7 @@ export function SettingsBackup() {
     }
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" })
-    await exportBlobAsFile(blob, filename)
+    await exportBlobAsFile(blob, filename, chooseLocation ? { chooseLocation: true } : undefined)
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

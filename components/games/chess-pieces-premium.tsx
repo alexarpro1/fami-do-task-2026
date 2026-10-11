@@ -1,5 +1,6 @@
 "use client"
 
+import type React from "react"
 import type { PieceType, Color } from "@/lib/chess"
 import { cn } from "@/lib/utils"
 
@@ -108,7 +109,7 @@ function PawnSvg({ fill, suffix }: { fill: string; suffix: string }) {
   )
 }
 
-const PREMIUM_PIECES: Record<PieceType, (props: { fill: string; suffix: string }) => JSX.Element> = {
+const PREMIUM_PIECES: Record<PieceType, (props: { fill: string; suffix: string }) => React.ReactElement> = {
   K: KingSvg,
   Q: QueenSvg,
   R: RookSvg,

@@ -21,7 +21,7 @@ const MOODS: {
     label: "Super",
     lightColor: "bg-emerald-100 border-emerald-400 text-emerald-700",
     darkColor: "dark:bg-emerald-900/40 dark:border-emerald-600 dark:text-emerald-300",
-    description: "Ich fuehle mich fantastisch!",
+    description: "Ich fühle mich fantastisch!",
   },
   {
     value: "good",
@@ -50,10 +50,10 @@ const MOODS: {
   {
     value: "angry",
     emoji: "😠",
-    label: "Wuetend",
+    label: "Wütend",
     lightColor: "bg-rose-100 border-rose-400 text-rose-700",
     darkColor: "dark:bg-rose-900/40 dark:border-rose-600 dark:text-rose-300",
-    description: "Ich bin wuetend",
+    description: "Ich bin wütend",
   },
 ]
 
@@ -175,10 +175,10 @@ export function MoodSelector({ childId, compact = false, onComplete }: MoodSelec
       <div className={cn("rounded-2xl p-6 md:p-8 neu-flat text-center", mood?.lightColor, mood?.darkColor)}>
         <span className="text-6xl md:text-7xl block mb-4">{mood?.emoji}</span>
         <h3 className="font-[var(--font-display)] text-xl md:text-2xl font-bold mb-2">
-          Du fuehlst dich {mood?.label.toLowerCase()}
+          Du fühlst dich {mood?.label.toLowerCase()}
         </h3>
         <p className="text-sm md:text-base text-muted-foreground">{mood?.description}</p>
-        <p className="text-xs text-muted-foreground mt-2">Stimmung fuer heute gespeichert</p>
+        <p className="text-xs text-muted-foreground mt-2">Stimmung für heute gespeichert</p>
       </div>
     )
   }
@@ -227,9 +227,9 @@ export function MoodSelector({ childId, compact = false, onComplete }: MoodSelec
             </button>
             <div>
               <h3 className="font-[var(--font-display)] text-lg md:text-xl font-bold">
-                Du fuehlst dich {MOODS.find((m) => m.value === selectedMood)?.label.toLowerCase()}
+                Du fühlst dich {MOODS.find((m) => m.value === selectedMood)?.label.toLowerCase()}
               </h3>
-              <p className="text-sm text-muted-foreground">Moechtest du mehr erzaehlen?</p>
+              <p className="text-sm text-muted-foreground">Möchtest du mehr erzählen?</p>
             </div>
           </div>
 
@@ -247,7 +247,7 @@ export function MoodSelector({ childId, compact = false, onComplete }: MoodSelec
               onClick={handleSkipNote}
               className="flex-1 rounded-xl h-12 md:h-14 text-base bg-transparent"
             >
-              Ueberspringen
+              Überspringen
             </Button>
             <Button onClick={handleSubmit} className="flex-1 rounded-xl h-12 md:h-14 text-base">
               Speichern

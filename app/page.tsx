@@ -14,12 +14,17 @@ import { WishlistCard } from "@/components/wishlist/wishlist-card"
 import { StreakBadge } from "@/components/streak/streak-badge"
 import Link from "next/link"
 import type { Rule, Reward } from "@/types"
-import { CheckCircle, Circle, Heart } from "lucide-react"
+import { Heart } from "lucide-react"
 import { useState, useRef } from "react"
 import { ChildCard } from "@/components/dashboard/child-card"
+import { QuickRulesSection } from "@/components/dashboard/quick-rules-section"
+import { TodayTasksSection } from "@/components/dashboard/today-tasks-section"
+import { PendingApprovalsWidget } from "@/components/admin/PendingApprovalsWidget"
+import { useDeviceRole } from "@/hooks/useDeviceRole"
 
 export default function HomePage() {
   const { selectedChild, state, isTaskCompletedToday, getTodayCompletionsForChild, dispatch } = useFamily()
+  const [deviceRole] = useDeviceRole()
   const { applyRule, redeemReward } = useSupabaseMutations()
   const [showPointsPopup, setShowPointsPopup] = useState(false)
   const [pointsChange, setPointsChange] = useState(0)
@@ -38,7 +43,7 @@ export default function HomePage() {
             action={
               <Link href="/admin">
                 <Button size="lg" className="rounded-full px-8">
-                  Kind hinzufuegen
+                  Kind hinzufügen
                 </Button>
               </Link>
             }
@@ -56,7 +61,7 @@ export default function HomePage() {
           <h1 className="font-[var(--font-fredoka)] text-2xl font-bold text-foreground mb-2 text-center">
             Wer bist du heute?
           </h1>
-          <p className="text-muted-foreground mb-8 text-center">Waehle dein Profil aus</p>
+          <p className="text-muted-foreground mb-8 text-center">Wähle dein Profil aus</p>
 
           <div className="grid grid-cols-2 gap-4 w-full max-w-md">
             {(state.children || []).map((child) => (
@@ -159,6 +164,11 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* Phase 18: Offene Freigaben nur für Eltern/Master */}
+        {(deviceRole === "parent" || deviceRole === "master") && (
+          <PendingApprovalsWidget />
+        )}
+
         {/* Streak and Level Row */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-card rounded-2xl p-3 neu-flat">
@@ -207,71 +217,25 @@ export default function HomePage() {
           </div>
         )}
 
-        {favoriteRules.length > 0 && (
-          <div className="bg-card rounded-2xl p-4 neu-flat">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-foreground">Schnell-Regeln</h3>
-              <Link href="/rules" className="text-sm text-primary font-medium">
-                Alle anzeigen
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {favoriteRules.slice(0, 8).map((rule) => {
-                const todayApplications = (state.ruleApplications || []).filter(
-                  (app) =>
-                    app.ruleId === rule.id &&
-                    app.childId === selectedChild.id &&
-                    app.appliedAt.startsWith(new Date().toISOString().split("T")[0]),
-                )
-                const isLimitReached = rule.dailyLimit ? todayApplications.length >= rule.dailyLimit : false
+        <QuickRulesSection
+          rules={favoriteRules}
+          childId={selectedChild.id}
+          todayApplicationCount={(ruleId) =>
+            (state.ruleApplications || []).filter(
+              (app) =>
+                app.ruleId === ruleId &&
+                app.childId === selectedChild.id &&
+                app.appliedAt.startsWith(new Date().toISOString().split("T")[0]),
+            ).length
+          }
+          onRuleApply={handleRuleApplied}
+        />
 
-                return (
-                  <QuickRuleButton
-                    key={rule.id}
-                    rule={rule}
-                    isLimitReached={isLimitReached}
-                    onApply={() => handleRuleApplied(rule)}
-                  />
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {todaysTasks.length > 0 && (
-          <div className="bg-card rounded-2xl p-4 neu-flat">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-foreground">Heutige Aufgaben</h3>
-              <Link href="/tasks" className="text-sm text-primary font-medium">
-                Alle anzeigen
-              </Link>
-            </div>
-            <div className="space-y-2">
-              {todaysTasks.map((task) => {
-                const completed = isTaskCompletedToday(task.id, selectedChild.id)
-                return (
-                  <div
-                    key={task.id}
-                    className={`flex items-center gap-3 p-2 rounded-xl transition-all ${
-                      completed ? "bg-success/10" : "bg-secondary/50"
-                    }`}
-                  >
-                    {completed ? (
-                      <CheckCircle className="w-5 h-5 text-success" />
-                    ) : (
-                      <Circle className="w-5 h-5 text-muted-foreground" />
-                    )}
-                    <span className="text-xl">{task.emoji}</span>
-                    <span className={`flex-1 ${completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                      {task.title}
-                    </span>
-                    <span className="text-sm font-medium text-primary">+{task.points}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
+        <TodayTasksSection
+          tasks={todaysTasks}
+          childId={selectedChild.id}
+          isTaskCompletedToday={isTaskCompletedToday}
+        />
 
         {state.settings.petSystemEnabled && pet && (
           <Link href="/pet" className="block">
@@ -280,7 +244,7 @@ export default function HomePage() {
               <div className="flex-1">
                 <p className="font-semibold text-foreground">{pet.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  Level {pet.level} - {pet.mood === "happy" ? "Gluecklich" : pet.mood === "sad" ? "Traurig" : "Normal"}
+                  Level {pet.level} - {pet.mood === "happy" ? "Glücklich" : pet.mood === "sad" ? "Traurig" : "Normal"}
                 </p>
               </div>
               <div className="flex flex-col items-end">
@@ -300,64 +264,6 @@ export default function HomePage() {
         {showConfetti && <ConfettiEffect key={confettiKey} />}
       </div>
     </AppShell>
-  )
-}
-
-function QuickRuleButton({
-  rule,
-  isLimitReached,
-  onApply,
-}: {
-  rule: Rule
-  isLimitReached: boolean
-  onApply: (points: number) => void
-}) {
-  const [showLocalPopup, setShowLocalPopup] = useState(false)
-  const [isApplied, setIsApplied] = useState(false)
-
-  const handleClick = () => {
-    if (isLimitReached || isApplied) return
-
-    onApply(rule.points)
-    setShowLocalPopup(true)
-    setIsApplied(true)
-
-    setTimeout(() => {
-      setShowLocalPopup(false)
-      setIsApplied(false)
-    }, 800)
-  }
-
-  return (
-    <button
-      onClick={handleClick}
-      disabled={isLimitReached}
-      className={`relative flex flex-col items-center p-3 rounded-xl transition-all ${
-        isApplied ? "scale-95" : "hover:scale-105"
-      } ${
-        rule.isPositive ? "bg-green-500/10 hover:bg-green-500/20" : "bg-red-500/10 hover:bg-red-500/20"
-      } ${isLimitReached && "opacity-50 cursor-not-allowed"}`}
-    >
-      {showLocalPopup && (
-        <div
-          className={`absolute -top-2 left-1/2 -translate-x-1/2 z-10 px-2 py-1 rounded-full text-sm font-bold animate-bounce ${
-            rule.isPositive ? "bg-green-500 text-white" : "bg-red-500 text-white"
-          }`}
-        >
-          {rule.isPositive ? "+" : ""}
-          {rule.points}
-        </div>
-      )}
-
-      <span className={`text-2xl mb-1 transition-transform ${isApplied ? "scale-125" : ""}`}>{rule.emoji}</span>
-      <span className="text-xs font-medium text-foreground text-center line-clamp-1">
-        {isApplied ? "Angewendet!" : rule.title}
-      </span>
-      <span className={`text-xs font-bold ${rule.isPositive ? "text-green-500" : "text-red-500"}`}>
-        {rule.isPositive ? "+" : ""}
-        {rule.points}
-      </span>
-    </button>
   )
 }
 

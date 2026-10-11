@@ -28,7 +28,7 @@ import {
 } from "@/lib/checkers"
 import { cn } from "@/lib/utils"
 import { Checkbox } from "@/components/ui/checkbox"
-import { RotateCcw, Users, Cpu, ChevronDown, ChevronUp, Trophy, BookOpen, Settings2, ZoomIn, ZoomOut } from "lucide-react"
+import { RotateCcw, Users, Cpu, ChevronDown, ChevronUp, Trophy, BookOpen, Settings2, ZoomIn, ZoomOut, ArrowLeft } from "lucide-react"
 import { applyXpAndGetBonuses, getLevelProgress, getNextBonusLevel } from "@/lib/game-progression"
 
 const DAME_STORAGE_KEY = "fami-dame-progress"
@@ -129,6 +129,7 @@ const DAME_DESIGNS: Array<{
   id: string
   name: string
   levelRequired?: number
+  coord?: string
   boardLight: string
   boardDark: string
   pieceWhite: string
@@ -140,6 +141,7 @@ const DAME_DESIGNS: Array<{
     id: "classic",
     name: "Klassisch",
     levelRequired: 1,
+    coord: "text-amber-900/70 dark:text-amber-200/90",
     boardLight: "bg-amber-100 dark:bg-amber-900/60",
     boardDark: "bg-amber-800 dark:bg-amber-950",
     pieceWhite: "bg-white border-2 border-amber-900/30 shadow-md",
@@ -151,6 +153,7 @@ const DAME_DESIGNS: Array<{
     id: "modern",
     name: "Modern",
     levelRequired: 6,
+    coord: "text-neutral-600 dark:text-neutral-400",
     boardLight: "bg-white dark:bg-zinc-100",
     boardDark: "bg-neutral-800 dark:bg-zinc-900",
     pieceWhite: "bg-white border-2 border-neutral-300 shadow-md",
@@ -162,6 +165,7 @@ const DAME_DESIGNS: Array<{
     id: "green",
     name: "Grün",
     levelRequired: 1,
+    coord: "text-green-800/80 dark:text-green-200/90",
     boardLight: "bg-green-100 dark:bg-green-900/50",
     boardDark: "bg-green-800 dark:bg-green-950",
     pieceWhite: "bg-white border-2 border-green-800/40 shadow-md",
@@ -173,6 +177,7 @@ const DAME_DESIGNS: Array<{
     id: "blue",
     name: "Blau",
     levelRequired: 1,
+    coord: "text-sky-800/80 dark:text-sky-200/90",
     boardLight: "bg-sky-100 dark:bg-sky-900/50",
     boardDark: "bg-sky-700 dark:bg-sky-950",
     pieceWhite: "bg-white border-2 border-sky-800/40 shadow-md",
@@ -279,9 +284,10 @@ function saveDamePrefs(prefs: DamePrefs): void {
 interface DameGameProps {
   onAwardPoints: (points: number, message: string, reason?: string) => void
   onClose: () => void
+  onNextGame?: () => void
 }
 
-export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
+export function DameGame({ onAwardPoints, onClose, onNextGame }: DameGameProps) {
   const [board, setBoard] = useState<Board>(() => createInitialBoard())
   const [turn, setTurn] = useState<Color>("w")
   const [selected, setSelected] = useState<Pos | null>(null)
@@ -292,6 +298,8 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
   const [boardSize, setBoardSize] = useState(BOARD_SIZE_DEFAULT)
   const [showCoordinates, setShowCoordinates] = useState(true)
   const [showNewGameChoice, setShowNewGameChoice] = useState(false)
+  /** Im „Neues Spiel“-Dialog gewählter Modus (wird erst beim Klick auf Starten übernommen). */
+  const [pendingNewGameMode, setPendingNewGameMode] = useState<"pvp" | "ai">("pvp")
   const [animatingMove, setAnimatingMove] = useState<{ path: Pos[]; step: number; color: Color } | null>(null)
   const [animationPhase, setAnimationPhase] = useState<"start" | "end">("start")
   const [gameMode, setGameMode] = useState<"pvp" | "ai">("pvp")
@@ -304,6 +312,26 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
   const [challenges, setChallenges] = useState<typeof CHALLENGE_POOL>(() => [...CHALLENGE_POOL].sort(() => Math.random() - 0.5).slice(0, 3))
   const [showRules, setShowRules] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const settingsAutoCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!showSettings) return
+    settingsAutoCloseRef.current = setTimeout(() => setShowSettings(false), 10_000)
+    return () => {
+      if (settingsAutoCloseRef.current) {
+        clearTimeout(settingsAutoCloseRef.current)
+        settingsAutoCloseRef.current = null
+      }
+    }
+  }, [showSettings])
+
+  const resetSettingsAutoClose = useCallback(() => {
+    if (settingsAutoCloseRef.current) {
+      clearTimeout(settingsAutoCloseRef.current)
+      settingsAutoCloseRef.current = setTimeout(() => setShowSettings(false), 10_000)
+    }
+  }, [])
+
   const [lastMove, setLastMove] = useState<Move | null>(null)
   const [moveHistory, setMoveHistory] = useState<Array<{ move: Move; color: Color }>>([])
   const [dameLevel, setDameLevel] = useState(1)
@@ -356,6 +384,10 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
       computerTurnRef.current = false
     }
   }, [gameMode, turn, result])
+
+  useEffect(() => {
+    if (showNewGameChoice) setPendingNewGameMode(gameMode)
+  }, [showNewGameChoice])
 
   useEffect(() => {
     if (result || gameMode !== "ai") {
@@ -709,10 +741,11 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
           </div>
         )}
         <div className="flex gap-3 justify-center flex-wrap">
+          <Button onClick={onClose} variant="outline" className="bg-primary/10 hover:bg-primary/15 text-primary border-primary/20">Zurück zu den Spielen</Button>
           <Button variant="outline" onClick={resetGame}>
             Nochmal spielen
           </Button>
-          <Button onClick={onClose}>Zurück zu den Spielen</Button>
+          <Button onClick={resetGame}>Weiter</Button>
         </div>
       </div>
     )
@@ -723,24 +756,29 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
   return (
     <div className="space-y-4 relative">
       {showNewGameChoice && (
-        <div className="absolute inset-0 z-50 flex items-end sm:items-center justify-center bg-background/90 backdrop-blur-sm rounded-xl pb-6 sm:pb-0">
-          <div className="p-6 rounded-2xl border border-border bg-card shadow-xl max-w-sm w-full mx-4 space-y-4">
+        <div className="fixed inset-0 z-[100] flex flex-col bg-background">
+          <Button variant="ghost" size="sm" className="self-start m-4 gap-2 shrink-0" onClick={onClose}>
+            <ArrowLeft className="w-4 h-4" />
+            Zurück zu den Spielen
+          </Button>
+          <div className="flex-1 flex items-start justify-center pt-6">
+            <div className="p-6 rounded-2xl border border-border bg-card shadow-xl max-w-sm w-full mx-4 space-y-4">
             <p className="text-lg font-semibold text-foreground text-center">Neues Spiel</p>
             <p className="text-sm text-muted-foreground text-center">Modus wählen</p>
             <div className="grid gap-2">
               {GAME_MODES.map((mode) => (
                 <Button
                   key={mode.id}
-                  variant="outline"
+                  variant={pendingNewGameMode === mode.id ? "secondary" : "outline"}
                   className="justify-start gap-2"
-                  onClick={() => startNewGame(mode.id)}
+                  onClick={() => setPendingNewGameMode(mode.id)}
                 >
                   <mode.icon className="h-4 w-4" />
                   {mode.name}
                 </Button>
               ))}
             </div>
-            {gameMode === "ai" && (
+            {pendingNewGameMode === "ai" && (
               <div className="pt-2 border-t border-border">
                 <p className="text-xs text-muted-foreground mb-2">Schwierigkeit</p>
                 <select
@@ -754,17 +792,24 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
                 </select>
               </div>
             )}
-            <Button variant="ghost" className="w-full" onClick={() => setShowNewGameChoice(false)}>
-              Abbrechen
-            </Button>
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={() => startNewGame(pendingNewGameMode)}>
+                Starten
+              </Button>
+              <Button variant="ghost" className="flex-1" onClick={() => setShowNewGameChoice(false)}>
+                Abbrechen
+              </Button>
+            </div>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-medium">
-            <Trophy className="h-3.5 w-3.5" />
+      {/* Infoleiste – kompakt, einheitlich mit Regeln-Karte */}
+      <div className="flex flex-wrap items-center justify-between gap-1.5 py-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[11px] font-medium">
+            <Trophy className="h-3 w-3" />
             Level {dameLevel}
             {dameLevel <= 5 && " (Lehrling)"}
             {dameLevel >= 6 && dameLevel <= 15 && " (Geselle)"}
@@ -772,11 +817,11 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
             {dameLevel > 30 && " (Endlos)"}
           </span>
           {dameLevel > 30 && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-[11px] text-muted-foreground">
               Highscore: <strong>{totalCapturedLifetime}</strong> Steine geschlagen
             </span>
           )}
-          <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+          <div className="flex flex-col gap-0 text-[11px] text-muted-foreground">
             <p>
               {gameMode === "ai"
                 ? "Du = Weiß. Sieg = +" + POINTS_WIN + " Goldmünzen"
@@ -789,68 +834,67 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Button
             variant={showSettings ? "secondary" : "outline"}
             size="sm"
-            className="h-11 min-w-[44px] gap-2 px-3 text-sm font-medium"
+            className="h-8 min-w-[36px] gap-1.5 px-2.5 text-xs font-medium"
             onClick={() => setShowSettings((s) => !s)}
             aria-label="Einstellungen"
           >
-            <Settings2 className="h-4 w-4 shrink-0" />
+            <Settings2 className="h-3.5 w-3.5 shrink-0" />
             Einstellungen
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-11 min-w-[44px] gap-2 px-3 text-sm font-medium"
+            className="h-8 min-w-[36px] gap-1.5 px-2.5 text-xs font-medium"
             onClick={resetGame}
             aria-label="Neu starten"
           >
-            <RotateCcw className="h-4 w-4 shrink-0" />
+            <RotateCcw className="h-3.5 w-3.5 shrink-0" />
             Neu starten
           </Button>
         </div>
       </div>
 
-      {/* Golden Rules + Herausforderungen nebeneinander (ab md) */}
-      <div className="grid gap-3 md:grid-cols-2">
-        {/* Golden Rules (aufklappbar) */}
-        <div className="rounded-xl border border-border bg-muted/30 overflow-hidden">
+      {/* Regeln + Herausforderungen – kompakt, ca. 1/5 Breite, für jedes Spiel gleich */}
+      <div className="w-max max-w-[min(100%,22rem)] rounded-xl border border-border bg-card overflow-hidden">
+        {/* Die goldenen Regeln (aufklappbar) */}
+        <div className="bg-muted/30">
           <button
             type="button"
             onClick={() => setShowRules(!showRules)}
-            className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50"
+            className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50"
           >
-            <span className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
+            <span className="flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5" />
               Die goldenen Regeln
             </span>
-            {showRules ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {showRules ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
           {showRules && (
-            <ul className="px-3 pb-3 pt-0 text-xs text-muted-foreground space-y-1 list-disc list-inside">
+            <ul className="px-2.5 pb-2 pt-0 text-[11px] text-muted-foreground space-y-0.5 list-disc list-inside">
               {GOLDEN_RULES.map((rule, i) => (
                 <li key={i}>{rule}</li>
               ))}
             </ul>
           )}
         </div>
-
-        {/* TaskCards (Herausforderungen) */}
+        {/* Herausforderungen */}
         {challenges.length > 0 && (
-          <div className="rounded-xl border border-border bg-card p-3">
-            <p className="text-xs font-medium text-foreground mb-2">Herausforderungen</p>
-            <ul className="space-y-1.5">
+          <div className="border-t border-border px-2.5 py-2">
+            <p className="text-[11px] font-medium text-foreground mb-1">Herausforderungen</p>
+            <ul className="space-y-0.5">
               {challengeResults.map((ch) => (
                 <li
                   key={ch.id}
                   className={cn(
-                    "flex items-center gap-2 text-xs",
+                    "flex items-center gap-1.5 text-[11px]",
                     ch.done ? "text-green-600 dark:text-green-400" : "text-muted-foreground",
                   )}
                 >
-                  {ch.done ? <span className="text-green-500">✓</span> : <span className="w-4">○</span>}
+                  {ch.done ? <span className="text-green-500">✓</span> : <span className="w-3.5">○</span>}
                   {ch.label}
                 </li>
               ))}
@@ -859,9 +903,14 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
         )}
       </div>
 
-      {/* Einstellungen (unter Regeln und Herausforderungen) */}
+      {/* Einstellungen (unter Regeln und Herausforderungen) – schließt nach 10 s Inaktivität */}
       {showSettings && (
-        <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-4">
+        <div
+          className="p-4 rounded-xl bg-muted/50 border border-border space-y-4"
+          onMouseDown={resetSettingsAutoClose}
+          onTouchStart={resetSettingsAutoClose}
+          onFocus={resetSettingsAutoClose}
+        >
           <p className="text-sm font-medium text-foreground">Einstellungen</p>
 
           <div>
@@ -1039,7 +1088,7 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
         <div className="inline-flex flex-col items-start">
           <div className="flex">
             {showCoordinates && (
-              <div className={cn("flex flex-col justify-around text-xs font-medium pr-1 shrink-0", design.coord)} style={{ width: Math.max(18, cellSize * 0.4) }}>
+              <div className={cn("flex flex-col justify-around text-xs font-medium pr-1 shrink-0", design.coord ?? "text-muted-foreground")} style={{ width: Math.max(18, cellSize * 0.4) }}>
                 {RANK_LABELS.map((l) => (
                   <span key={l} className="flex items-center justify-center" style={{ height: cellSize }}>
                     {l}
@@ -1160,7 +1209,7 @@ export function DameGame({ onAwardPoints, onClose }: DameGameProps) {
           </div>
           {showCoordinates && (
             <div className="flex mt-1" style={{ paddingLeft: Math.max(18, cellSize * 0.4) }}>
-              <div className={cn("flex justify-around text-xs font-medium", design.coord)} style={{ width: boardSize }}>
+              <div className={cn("flex justify-around text-xs font-medium", design.coord ?? "text-muted-foreground")} style={{ width: boardSize }}>
                 {FILE_LABELS.map((l) => (
                   <span key={l} style={{ width: cellSize, textAlign: "center" }}>
                     {l}

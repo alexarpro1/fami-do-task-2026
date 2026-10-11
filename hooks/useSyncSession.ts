@@ -6,7 +6,21 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 
 const DEVICES_TABLE = "devices"
 const DEVICE_ID_KEY = "famiapp-device-id"
+const DEVICE_ROLE_KEY = "famiapp_device_role"
 const HEARTBEAT_INTERVAL_MS = 60_000
+
+async function getStoredDeviceRole(): Promise<DeviceRole | null> {
+  if (typeof window === "undefined") return null
+  try {
+    const { Preferences } = await import("@capacitor/preferences")
+    const { value } = await Preferences.get({ key: DEVICE_ROLE_KEY })
+    if (value === "master" || value === "parent" || value === "child") return value
+  } catch {
+    const v = localStorage.getItem(DEVICE_ROLE_KEY)
+    if (v === "master" || v === "parent" || v === "child") return v
+  }
+  return null
+}
 
 export type DeviceRole = "master" | "parent" | "child"
 
@@ -106,7 +120,8 @@ export function useSyncSession(): { deviceId: string } {
       .limit(1)
 
     const isFirst = !existing || existing.length === 0 || existing[0].device_id === deviceId
-    const role: DeviceRole = isFirst ? "master" : "parent"
+    const storedRole = await getStoredDeviceRole()
+    const role: DeviceRole = storedRole ?? (isFirst ? "master" : "parent")
 
     const { error } = await supabase.from(DEVICES_TABLE).upsert(
       {

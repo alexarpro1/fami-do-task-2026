@@ -53,8 +53,8 @@ export default function PetPage() {
       <AppShell>
         <EmptyState
           icon="👤"
-          title="Kein Kind ausgewaehlt"
-          description="Waehle zuerst ein Kind aus."
+          title="Kein Kind ausgewählt"
+          description="Wähle zuerst ein Kind aus."
           action={
             <Link href="/">
               <Button>Zur Startseite</Button>
@@ -102,7 +102,7 @@ export default function PetPage() {
           ) : (
             <div className="w-full max-w-md">
               <h2 className="font-[var(--font-fredoka)] text-2xl font-bold text-foreground text-center mb-6">
-                Waehle dein Haustier
+                Wähle dein Haustier
               </h2>
 
               {/* Pet Type Selection */}

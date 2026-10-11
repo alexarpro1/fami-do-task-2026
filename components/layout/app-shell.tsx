@@ -32,7 +32,7 @@ export function AppShell({ children, hideHeader = false, hideNav = false }: AppS
 
   // Always use mobile layout (no sidebar) - works on all devices
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen min-w-[300px] bg-background flex flex-col">
       {!hideHeader && <Header />}
       <main className="flex-1 pb-20">{children}</main>
       {!hideNav && <BottomNavigation />}

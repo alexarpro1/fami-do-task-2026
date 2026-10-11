@@ -168,7 +168,7 @@ export function FocusTimer({ task, onClose, theme = "circle" }: FocusTimerProps)
             animate={{ opacity: 1, scale: 1 }}
             className="text-destructive font-bold text-xl animate-pulse"
           >
-            Zeit ueberschritten: {formatTime(timeLeft)}
+            Zeit überschritten: {formatTime(timeLeft)}
           </motion.div>
         )}
 

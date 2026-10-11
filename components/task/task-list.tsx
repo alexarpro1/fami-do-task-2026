@@ -33,7 +33,7 @@ function checkTaskAvailability(
 
   // 2. Day check - Is today one of the allowed days?
   if (task.days.length > 0 && !task.days.includes(currentDay)) {
-    return { isAvailable: false, reason: "nicht fuer heute", timeStatus: null, limitRemaining: null }
+    return { isAvailable: false, reason: "nicht für heute", timeStatus: null, limitRemaining: null }
   }
 
   // 3. Time check - Is current time within the time window?
@@ -136,19 +136,19 @@ export function TaskList({ category, childId, showHidden = false }: TaskListProp
   return (
     <div className="space-y-4">
       {/* Progress Header */}
-      <div className="flex items-center justify-between px-1">
-        <span className="text-sm text-muted-foreground">
-          {completedCount} von {totalCount} erledigt
-        </span>
-        <span className="text-sm font-medium text-foreground">{completionPercent}%</span>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-        <div
-          className="h-full bg-success transition-all duration-500 rounded-full"
-          style={{ width: `${completionPercent}%` }}
-        />
+      <div className="rounded-xl bg-muted/40 border border-border/60 p-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-muted-foreground">
+            {completedCount} von {totalCount} erledigt
+          </span>
+          <span className="text-sm font-semibold text-foreground tabular-nums">{completionPercent}%</span>
+        </div>
+        <div className="h-3 bg-muted rounded-full overflow-hidden" role="progressbar" aria-valuenow={completionPercent} aria-valuemin={0} aria-valuemax={100} aria-label={`Fortschritt: ${completedCount} von ${totalCount} Aufgaben erledigt`}>
+          <div
+            className="h-full bg-green-500 dark:bg-green-600 rounded-full transition-all duration-500 ease-out min-w-0"
+            style={{ width: `${completionPercent}%` }}
+          />
+        </div>
       </div>
 
       {/* Available Task Cards */}

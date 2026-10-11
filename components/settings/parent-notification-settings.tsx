@@ -90,7 +90,7 @@ export function ParentNotificationSettings() {
               <Users className="w-5 h-5 text-muted-foreground" />
               <div>
                 <p className="text-foreground">Tages-Zusammenfassung</p>
-                <p className="text-xs text-muted-foreground">Abendliche Uebersicht aller Aktivitaeten</p>
+                <p className="text-xs text-muted-foreground">Abendliche Übersicht aller Aktivitäten</p>
               </div>
             </div>
             <button

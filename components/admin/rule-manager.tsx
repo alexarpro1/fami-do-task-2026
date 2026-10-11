@@ -40,6 +40,7 @@ interface RuleFormData {
   dailyLimit?: number
   repeatInterval?: number
   isActive: boolean
+  requiresApproval?: boolean
 }
 
 const defaultFormData: RuleFormData = {
@@ -51,6 +52,7 @@ const defaultFormData: RuleFormData = {
   dailyLimit: undefined,
   repeatInterval: undefined,
   isActive: true,
+  requiresApproval: false,
 }
 
 function InlineRuleForm({
@@ -61,6 +63,7 @@ function InlineRuleForm({
   editingId,
   favoriteRuleIds,
   onToggleFavorite,
+  requireRuleApprovalGlobal,
 }: {
   formData: RuleFormData
   setFormData: (data: RuleFormData) => void
@@ -69,6 +72,7 @@ function InlineRuleForm({
   editingId: string | null
   favoriteRuleIds: string[]
   onToggleFavorite: (id: string) => void
+  requireRuleApprovalGlobal?: boolean
 }) {
   const [expandedSections, setExpandedSections] = useState<string[]>(["basic"])
   const formRef = useRef<HTMLDivElement>(null)
@@ -277,6 +281,30 @@ function InlineRuleForm({
           </AnimatePresence>
         </div>
 
+        {/* Phase 18: Benötigt Bestätigung durch Eltern */}
+        {(requireRuleApprovalGlobal ?? false) && (
+          <div className="flex items-center justify-between py-2 border-t border-border">
+            <span className="text-sm text-foreground">Benötigt Bestätigung durch Eltern</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={formData.requiresApproval ?? false}
+              onClick={() => setFormData({ ...formData, requiresApproval: !(formData.requiresApproval ?? false) })}
+              className={cn(
+                "w-12 h-7 rounded-full transition-colors relative",
+                formData.requiresApproval ? "bg-primary" : "bg-secondary",
+              )}
+            >
+              <span
+                className={cn(
+                  "absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform",
+                  formData.requiresApproval ? "translate-x-6" : "translate-x-1",
+                )}
+              />
+            </button>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
           <Button onClick={onCancel} variant="outline" size="sm" className="flex-1 bg-transparent">
@@ -357,6 +385,7 @@ export function RuleManager() {
       dailyLimit: rule.dailyLimit,
       repeatInterval: rule.repeatInterval,
       isActive: rule.isActive,
+      requiresApproval: rule.requiresApproval ?? false,
     })
     setEditingId(rule.id)
     setIsAdding(false)
@@ -373,7 +402,7 @@ export function RuleManager() {
   }
 
   const handleDelete = (ruleId: string) => {
-    if (confirm("Diese Regel wirklich loeschen?")) {
+    if (confirm("Diese Regel wirklich löschen?")) {
       dispatch({ type: "DELETE_RULE", payload: ruleId })
     }
   }
@@ -442,7 +471,7 @@ export function RuleManager() {
         })
         break
       case "delete":
-        if (confirm(`Wirklich ${selectedRules.length} Regeln loeschen?`)) {
+        if (confirm(`Wirklich ${selectedRules.length} Regeln löschen?`)) {
           selectedRules.forEach((ruleId) => {
             dispatch({ type: "DELETE_RULE", payload: ruleId })
           })
@@ -577,7 +606,7 @@ export function RuleManager() {
               >
                 Keine
               </Button>
-              <span className="text-sm font-medium text-foreground">{selectedRules.length} ausgewaehlt</span>
+              <span className="text-sm font-medium text-foreground">{selectedRules.length} ausgewählt</span>
             </div>
             {selectedRules.length > 0 && (
               <div className="flex gap-2">
@@ -627,6 +656,7 @@ export function RuleManager() {
             editingId={null}
             favoriteRuleIds={favoriteRuleIds}
             onToggleFavorite={toggleFavorite}
+            requireRuleApprovalGlobal={state?.settings?.requireRuleApprovalGlobal}
           />
         )}
       </AnimatePresence>
@@ -644,6 +674,7 @@ export function RuleManager() {
                 editingId={editingId}
                 favoriteRuleIds={favoriteRuleIds}
                 onToggleFavorite={toggleFavorite}
+                requireRuleApprovalGlobal={state?.settings?.requireRuleApprovalGlobal}
               />
             ) : (
               <div
@@ -767,7 +798,7 @@ export function RuleManager() {
             >
               <h3 className="font-semibold text-lg text-foreground">
                 {bulkAction === "toggle" && "Aktivierung umschalten"}
-                {bulkAction === "delete" && "Regeln loeschen"}
+                {bulkAction === "delete" && "Regeln löschen"}
               </h3>
 
               {bulkAction === "toggle" && (
@@ -778,7 +809,7 @@ export function RuleManager() {
 
               {bulkAction === "delete" && (
                 <p className="text-sm text-destructive">
-                  {selectedRules.length} Regeln werden unwiderruflich geloescht!
+                  {selectedRules.length} Regeln werden unwiderruflich gelöscht!
                 </p>
               )}
 
@@ -791,7 +822,7 @@ export function RuleManager() {
                   variant={bulkAction === "delete" ? "destructive" : "default"}
                   onClick={handleBulkAction}
                 >
-                  Bestaetigen
+                  Bestätigen
                 </Button>
               </div>
             </motion.div>

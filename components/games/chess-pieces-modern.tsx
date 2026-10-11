@@ -1,5 +1,6 @@
 "use client"
 
+import type React from "react"
 import type { PieceType, Color } from "@/lib/chess"
 import { cn } from "@/lib/utils"
 
@@ -87,7 +88,7 @@ function PawnSvg({ className }: { className?: string }) {
   )
 }
 
-const MODERN_PIECES: Record<PieceType, (props: { className?: string }) => JSX.Element> = {
+const MODERN_PIECES: Record<PieceType, (props: { className?: string }) => React.ReactElement> = {
   K: KingSvg,
   Q: QueenSvg,
   R: RookSvg,

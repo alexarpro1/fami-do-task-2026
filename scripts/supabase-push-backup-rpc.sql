@@ -115,21 +115,23 @@ BEGIN
   END IF;
 
   IF jsonb_array_length(p_rules) > 0 THEN
-    INSERT INTO rules (id, sync_id, title, point_impact, emoji, is_active)
+    INSERT INTO rules (id, sync_id, title, point_impact, emoji, is_active, requires_approval)
     SELECT
       (e->>'id')::TEXT,
       p_sync_id,
       coalesce((e->>'title')::TEXT, ''),
       coalesce((e->>'point_impact')::INTEGER, 0),
       coalesce((e->>'emoji')::TEXT, '⚖️'),
-      coalesce((e->>'is_active')::BOOLEAN, true)
+      coalesce((e->>'is_active')::BOOLEAN, true),
+      coalesce((e->>'requires_approval')::BOOLEAN, false)
     FROM jsonb_array_elements(p_rules) AS e
     ON CONFLICT (id) DO UPDATE SET
       sync_id = EXCLUDED.sync_id,
       title = EXCLUDED.title,
       point_impact = EXCLUDED.point_impact,
       emoji = EXCLUDED.emoji,
-      is_active = EXCLUDED.is_active;
+      is_active = EXCLUDED.is_active,
+      requires_approval = EXCLUDED.requires_approval;
   END IF;
 
   IF jsonb_array_length(p_task_completions) > 0 THEN
@@ -169,13 +171,14 @@ BEGIN
   END IF;
 
   IF jsonb_array_length(p_rule_applications) > 0 THEN
-    INSERT INTO rule_applications (id, sync_id, rule_id, child_id, points_applied, created_at)
+    INSERT INTO rule_applications (id, sync_id, rule_id, child_id, points_applied, status, created_at)
     SELECT
       (e->>'id')::TEXT,
       p_sync_id,
       (e->>'rule_id')::TEXT,
       (e->>'child_id')::TEXT,
       coalesce((e->>'points_applied')::INTEGER, 0),
+      coalesce((e->>'status')::TEXT, 'approved'),
       coalesce((e->>'created_at')::TIMESTAMPTZ, now())
     FROM jsonb_array_elements(p_rule_applications) AS e
     ON CONFLICT (id) DO UPDATE SET
@@ -183,6 +186,7 @@ BEGIN
       rule_id = EXCLUDED.rule_id,
       child_id = EXCLUDED.child_id,
       points_applied = EXCLUDED.points_applied,
+      status = EXCLUDED.status,
       created_at = EXCLUDED.created_at;
   END IF;
 

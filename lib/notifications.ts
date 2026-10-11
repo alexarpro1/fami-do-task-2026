@@ -58,6 +58,27 @@ export async function sendNotification(title: string, body: string, options?: { 
   if (!sent) sendViaWeb(title, body)
 }
 
+/** Gibt den aktuellen Berechtigungsstatus zurück (Native + Web). */
+export async function getNotificationPermission(): Promise<"granted" | "denied" | "default"> {
+  if (typeof window === "undefined") return "default"
+  try {
+    const { Capacitor } = await import("@capacitor/core")
+    if (Capacitor.isNativePlatform()) {
+      const { LocalNotifications } = await import("@capacitor/local-notifications")
+      const perm = await LocalNotifications.checkPermissions()
+      const status = perm && typeof perm === "object" ? (perm as { display?: string }).display : undefined
+      if (status === "granted") return "granted"
+      if (status === "denied") return "denied"
+      return "default"
+    }
+  } catch (_) {
+    // Fallback auf Web
+  }
+  if (!("Notification" in window)) return "default"
+  const p = Notification.permission
+  return p === "granted" || p === "denied" ? p : "default"
+}
+
 /** Berechtigung anfragen: auf Native LocalNotifications, sonst Web Notification API. */
 export async function requestNotificationPermission(): Promise<boolean> {
   if (typeof window === "undefined") return false

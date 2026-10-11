@@ -8,10 +8,12 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { LanguageHtmlWrapper } from "@/components/language-html-wrapper"
 import { ForcedUpdateModal } from "@/components/ui/forced-update-modal"
 import { UpdateAvailableBanner } from "@/components/ui/update-available-banner"
+import { DailyBackupRunner } from "@/components/settings/daily-backup-runner"
 import { SyncSessionTracker } from "@/components/cloud-sync/SyncSessionTracker"
 import { SupabaseDataLoader } from "@/components/cloud-sync/SupabaseDataLoader"
 import { SyncRefreshProvider } from "@/context/sync-refresh-context"
 import { PullToRefresh } from "@/components/ui/pull-to-refresh"
+import { BackButtonHandler } from "@/components/app/BackButtonHandler"
 import "./globals.css"
 
 const nunito = Nunito({
@@ -90,15 +92,17 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body
-        className={`${nunito.variable} ${fredoka.variable} font-sans antialiased`}
+        className={`${nunito.variable} ${fredoka.variable} min-w-[300px] font-sans antialiased`}
         style={{ backgroundColor: "#0f172a", color: "#f8fafc" }}
       >
         <ErrorBoundary>
           <FamilyProvider>
+            <BackButtonHandler />
             <SyncSessionTracker />
             <SupabaseDataLoader />
             <SyncRefreshProvider>
               <PullToRefresh />
+              <DailyBackupRunner />
               <ThemeApplier />
               <LanguageHtmlWrapper />
               <ForcedUpdateModal />

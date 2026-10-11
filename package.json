@@ -24,6 +24,8 @@
     "test:local-sync": "tsx --test lib/local-sync/__tests__/*.test.ts lib/nearby/__tests__/*.test.ts",
     "test:sync-v3": "tsx --test lib/sync-v3/__tests__/*.test.ts",
     "test:nearby": "tsx --test lib/nearby/__tests__/*.test.ts",
+    "test:update-security": "tsx --test lib/update-security/__tests__/*.test.ts",
+    "verify:update-urls": "node scripts/verify-update-urls.mjs",
     "mobile:build": "npm run export && npm run cap:icons && npx cap sync && npx cap open android",
     "mobile:update": "npm run export && npm run cap:icons && npx cap sync",
     "android:pixel9": "npx cap run android --target=Pixel_9",

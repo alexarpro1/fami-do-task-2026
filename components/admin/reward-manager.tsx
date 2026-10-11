@@ -142,7 +142,7 @@ function InlineRewardForm({
         <div className="flex gap-2 pt-2">
           <Button onClick={onSave} size="sm" className="flex-1 rounded-lg" disabled={!formData.name || !formData.emoji}>
             <Check className="w-4 h-4 mr-1" />
-            {isEditing ? "Speichern" : "Hinzufuegen"}
+            {isEditing ? "Speichern" : "Hinzufügen"}
           </Button>
           <Button variant="ghost" size="sm" onClick={onCancel} className="rounded-lg">
             <X className="w-4 h-4" />
@@ -216,7 +216,7 @@ export function RewardManager() {
   }
 
   const handleDelete = (rewardId: string) => {
-    if (confirm("Diese Belohnung wirklich loeschen?")) {
+    if (confirm("Diese Belohnung wirklich löschen?")) {
       dispatch({ type: "DELETE_REWARD", payload: rewardId })
     }
   }

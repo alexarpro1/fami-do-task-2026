@@ -35,7 +35,7 @@ export function SchoolTimeSettings() {
 
       {state.settings.schoolTimeEnabled && (
         <>
-          <p className="text-sm text-muted-foreground">Konfiguriere die Schulzeiten fuer jedes Kind:</p>
+          <p className="text-sm text-muted-foreground">Konfiguriere die Schulzeiten für jedes Kind:</p>
 
           {!state.children || state.children.length === 0 ? (
             <p className="text-center text-muted-foreground py-4">Noch keine Kinder vorhanden.</p>

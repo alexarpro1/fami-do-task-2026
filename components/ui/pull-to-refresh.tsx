@@ -4,19 +4,39 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { RefreshCw } from "lucide-react"
 import { useSyncRefresh } from "@/context/sync-refresh-context"
 
-/** Mindest-Pull (px), ab dem Loslassen den Refresh auslöst – abhängig von Viewport */
+// ─── Konfiguration (zentral anpassbar) ─────────────────────────────────────
+export const PULL_TO_REFRESH_CONFIG = {
+  /** Mindest-Pull (px), ab dem Loslassen den Refresh auslöst */
+  threshold: 72,
+  /** Maximal sichtbare Pull-Höhe (px) */
+  maxPull: 128,
+  /** Widerstand beim Ziehen (0–1): wie viel vom Fingerweg als Pull gezählt wird */
+  resistance: 0.5,
+  /** Mindest-Fingerbewegung (px), bevor Pull gezählt wird */
+  minDragStart: 12,
+  /** Scroll-Toleranz (px): wenn Seite schon gescrollt ist, kein Pull-to-Refresh */
+  scrollTolerance: 10,
+  /** Höhe des sichtbaren Indikators während des Ladens (px) – muss Icon + Text + Padding fassen */
+  indicatorHeight: 96,
+  /** Anteil des Viewports für dynamische Werte (z. B. 0.12 = 12 %) */
+  thresholdViewportFactor: 0.12,
+  maxPullViewportFactor: 0.2,
+} as const
+
+/** Threshold abhängig von Viewport (für verschiedene Bildschirmgrößen). */
 function getPullThreshold(): number {
-  if (typeof window === "undefined") return 70
-  return Math.max(56, Math.min(90, window.innerHeight * 0.12))
+  if (typeof window === "undefined") return PULL_TO_REFRESH_CONFIG.threshold
+  const fromViewport = Math.round(window.innerHeight * PULL_TO_REFRESH_CONFIG.thresholdViewportFactor)
+  return Math.max(PULL_TO_REFRESH_CONFIG.threshold, Math.min(96, fromViewport))
 }
 
-/** Maximal sichtbare Pull-Höhe (px) – abhängig von Viewport */
+/** Max-Pull abhängig von Viewport. */
 function getMaxPull(): number {
-  if (typeof window === "undefined") return 120
-  return Math.max(100, Math.min(140, window.innerHeight * 0.2))
+  if (typeof window === "undefined") return PULL_TO_REFRESH_CONFIG.maxPull
+  const fromViewport = Math.round(window.innerHeight * PULL_TO_REFRESH_CONFIG.maxPullViewportFactor)
+  return Math.max(PULL_TO_REFRESH_CONFIG.maxPull, Math.min(160, fromViewport))
 }
 
-/** Einheitliche Scroll-Position für alle Geräte (Browser, WebView, iOS/Android). */
 function getScrollTop(): number {
   if (typeof window === "undefined" || typeof document === "undefined") return 0
   return Math.max(
@@ -29,11 +49,8 @@ function getScrollTop(): number {
   )
 }
 
-const SCROLL_TOP_TOLERANCE = 8
-
 /**
- * Pull-to-Refresh: Wischen von oben nach unten löst Sync-Abruf aus.
- * Funktioniert auf Touch-Geräten (Smartphone, Tablet) und bei Bedarf per Pointer (Touch-Laptops).
+ * Pull-to-Refresh: Wischen von oben nach unten löst Sync aus.
  * Nur aktiv, wenn Cloud-Sync (sync_id) konfiguriert ist.
  */
 export function PullToRefresh() {
@@ -59,24 +76,25 @@ export function PullToRefresh() {
 
     const threshold = getPullThreshold()
     const maxPull = getMaxPull()
+    const { resistance, minDragStart, scrollTolerance } = PULL_TO_REFRESH_CONFIG
 
     const onTouchStart = (e: TouchEvent) => {
-      if (getScrollTop() > SCROLL_TOP_TOLERANCE) return
+      if (getScrollTop() > scrollTolerance) return
       trackingRef.current = true
       startYRef.current = e.touches[0]!.clientY
     }
 
     const onTouchMove = (e: TouchEvent) => {
       if (!trackingRef.current || isRefreshingRef.current) return
-      if (getScrollTop() > SCROLL_TOP_TOLERANCE) {
+      if (getScrollTop() > scrollTolerance) {
         trackingRef.current = false
         setPullY(0)
         return
       }
       const y = e.touches[0]!.clientY
       const delta = Math.max(0, y - startYRef.current)
-      if (delta > 15) e.preventDefault()
-      const pull = Math.min(delta * 0.55, maxPull)
+      if (delta > minDragStart) e.preventDefault()
+      const pull = Math.min(delta * resistance, maxPull)
       pullYRef.current = pull
       setPullY(pull)
     }
@@ -110,34 +128,74 @@ export function PullToRefresh() {
   }, [canRefresh, runRefresh])
 
   const showIndicator = visible || isRefreshing || pullY > 0
-  const threshold = typeof window !== "undefined" ? getPullThreshold() : 70
-  const height = Math.max(pullY, isRefreshing ? 56 : 0)
+  const threshold = typeof window !== "undefined" ? getPullThreshold() : PULL_TO_REFRESH_CONFIG.threshold
+  const indicatorH = PULL_TO_REFRESH_CONFIG.indicatorHeight
+  const contentHeight = Math.max(pullY, isRefreshing ? indicatorH : 0)
+  const isReady = pullY >= threshold
+  const progress = threshold > 0 ? Math.min(1, pullY / threshold) : 0
 
   if (!canRefresh) return null
 
   return (
     <div
-      className="pointer-events-none fixed left-0 right-0 top-0 z-40 flex items-center justify-center overflow-hidden bg-background/90 backdrop-blur-sm transition-[height] duration-150"
+      className="pointer-events-none fixed left-0 right-0 top-0 z-40 overflow-hidden transition-[height,opacity] duration-200 ease-out"
       style={{
-        height: showIndicator ? height : 0,
+        height: showIndicator ? `calc(${contentHeight}px + env(safe-area-inset-top, 0px))` : 0,
         opacity: showIndicator ? 1 : 0,
-        paddingTop: "env(safe-area-inset-top, 0px)",
       }}
       aria-hidden
     >
-      <div className="flex flex-col items-center gap-1 py-2">
-        {isRefreshing ? (
-          <RefreshCw className="h-6 w-6 animate-spin text-primary" aria-hidden />
-        ) : (
-          <RefreshCw
-            className="h-6 w-6 text-muted-foreground transition-transform duration-150"
-            style={{ transform: pullY >= threshold ? "scale(1.15)" : `scale(${0.85 + (pullY / threshold) * 0.3})` }}
+      <div
+        className="flex min-h-0 flex-col rounded-b-2xl border-b border-border/60 bg-background/95 shadow-sm backdrop-blur-md"
+        style={{
+          marginTop: "env(safe-area-inset-top, 0px)",
+          height: contentHeight,
+          minHeight: contentHeight,
+        }}
+      >
+        <div className="flex flex-1 flex-col items-center justify-center gap-2.5 overflow-hidden px-4 py-3 min-h-0">
+          <div
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
+              isRefreshing
+                ? "bg-primary/15 text-primary"
+                : isReady
+                  ? "bg-primary/15 text-primary ring-2 ring-primary/30"
+                  : "bg-muted text-muted-foreground"
+            }`}
+            style={
+              !isRefreshing && pullY > 0
+                ? { transform: `scale(${0.88 + progress * 0.24})` }
+                : undefined
+            }
+          >
+            <RefreshCw
+              className={`h-5 w-5 ${isRefreshing ? "animate-spin" : ""}`}
+              aria-hidden
+            />
+          </div>
+          <span
+            className={`text-center text-xs font-medium transition-colors ${
+              isReady ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            {isRefreshing
+              ? "Aktualisiere…"
+              : isReady
+                ? "Loslassen zum Aktualisieren"
+                : "Ziehen zum Aktualisieren"}
+          </span>
+        </div>
+        {pullY > 0 && !isRefreshing && (
+          <div
+            className="h-0.5 w-full overflow-hidden rounded-b-2xl bg-muted/60"
             aria-hidden
-          />
+          >
+            <div
+              className="h-full bg-primary/50 transition-all duration-75"
+              style={{ width: `${progress * 100}%` }}
+            />
+          </div>
         )}
-        <span className="text-xs font-medium text-muted-foreground">
-          {isRefreshing ? "Aktualisiere…" : pullY >= threshold ? "Loslassen zum Aktualisieren" : "Ziehen zum Aktualisieren"}
-        </span>
       </div>
     </div>
   )

@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@theme {
+  /* Logo-Text ab 450px sichtbar, darunter nur kleines Logo */
+  --breakpoint-narrow: 28.125rem; /* 450px */
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

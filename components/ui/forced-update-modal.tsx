@@ -12,8 +12,11 @@ export function ForcedUpdateModal() {
   const openDownloadUrl = async () => {
     const url = downloadUrl || (typeof window !== "undefined" ? window.location.origin : "/")
     try {
-      const cap = typeof window !== "undefined" && (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor
-      if (cap?.isNativePlatform?.()) {
+      const cap =
+        typeof window !== "undefined"
+          ? (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor
+          : undefined
+      if (cap && typeof cap === "object" && typeof cap.isNativePlatform === "function" && cap.isNativePlatform()) {
         const { Browser } = await import("@capacitor/browser")
         await Browser.open({ url })
         return

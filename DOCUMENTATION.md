@@ -212,8 +212,8 @@ Für alle Spiele mit **Neu starten**, **Einstellungen**, **Regeln** und **Heraus
 - **Dame:** `components/games/dame-game.tsx`  
 - **Schach:** `components/games/chess-game.tsx`
 
-**Dialog „Neues Spiel“:**  
-- Overlay zentriert oder auf Mobile unten (z. B. `items-end sm:items-center`, `pb-6 sm:pb-0`), damit der Dialog auf kleinen Displays nicht die Mitte blockiert.
+**Dialog „Neues Spiel“:**
+- Overlay mit Dialog oben zentriert (z. B. `items-start justify-center pt-6`), damit der Dialog auf allen Geräten und Bildschirmgrößen immer im oberen Bereich bleibt.
 
 ---
 

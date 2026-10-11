@@ -75,7 +75,7 @@ export function useConnectedDevices(syncId: string) {
     const presenceChannel = supabase.channel(`${PRESENCE_CHANNEL_PREFIX}${syncId}`)
 
     presenceChannel.on("presence", { event: "sync" }, () => {
-      const state = presenceChannel.presenceState<{ device_id: string }>()
+      const state = presenceChannel.presenceState() as Record<string, Array<{ device_id?: string }>>
       const onlineIds = new Set<string>()
       for (const key in state) {
         for (const presence of state[key]) {
@@ -86,7 +86,7 @@ export function useConnectedDevices(syncId: string) {
       fetchDevices()
     })
 
-    presenceChannel.subscribe(async (status) => {
+    presenceChannel.subscribe(async (status: string) => {
       if (status === "SUBSCRIBED" && currentDeviceId) {
         await presenceChannel.track({ device_id: currentDeviceId })
       }

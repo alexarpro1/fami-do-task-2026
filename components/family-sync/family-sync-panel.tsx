@@ -68,7 +68,7 @@ export function FamilySyncPanel() {
   const [showQRCode, setShowQRCode] = useState(false)
   const [leaveFamilyDialogOpen, setLeaveFamilyDialogOpen] = useState(false)
 
-  // Online-Status ueberwachen
+  // Online-Status überwachen
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
@@ -94,7 +94,7 @@ export function FamilySyncPanel() {
     if (!isConnected) return
 
     const unsubscribe = subscribeToFamilyChanges((newData) => {
-      // Daten wurden von anderem Geraet geaendert
+      // Daten wurden von anderem Gerät geändert
       dispatch({ type: "LOAD_STATE", payload: newData })
       setLastSync(new Date())
     })
@@ -209,7 +209,7 @@ export function FamilySyncPanel() {
     setIsSyncing(true)
     setError(null)
 
-    // Push lokale Aenderungen
+    // Push lokale Änderungen
     const pushResult = await pushData(state)
 
     if (pushResult.success) {
@@ -265,7 +265,7 @@ export function FamilySyncPanel() {
         ) : (
           <>
             <WifiOff className="h-4 w-4 text-orange-500" />
-            <span className="text-orange-500">Offline - Aenderungen werden lokal gespeichert</span>
+            <span className="text-orange-500">Offline - Änderungen werden lokal gespeichert</span>
           </>
         )}
       </div>
@@ -354,7 +354,7 @@ export function FamilySyncPanel() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <Smartphone className="h-4 w-4" />
-                  Verbundene Geraete ({members.length})
+                  Verbundene Geräte ({members.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">

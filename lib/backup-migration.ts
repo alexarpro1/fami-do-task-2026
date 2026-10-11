@@ -268,7 +268,7 @@ export function validateBackup(data: any): ValidationResult {
   // Check if it's a new format backup
   if (data.type && (data.type === "settings" || data.type === "data" || data.type === "all")) {
     if (!data.version || !data.exportedAt) {
-      warnings.push("Neue Backup-Format fehlt Version oder Zeitstempel")
+      warnings.push("Neues Backup-Format fehlt Version oder Zeitstempel")
     }
 
     if (data.type === "data" || data.type === "all") {
@@ -311,7 +311,7 @@ export function validateBackup(data: any): ValidationResult {
     rulesCount = data.rules?.length || 0
 
     if (data.users.length === 0) {
-      warnings.push("Backup enthaelt keine Kinder")
+      warnings.push("Backup enthält keine Kinder")
     }
 
     // Validate user structure - more lenient

@@ -97,7 +97,7 @@ export async function fetchFamilyStateFromSupabase(
 
   const completions = (completionsRows ?? []) as { child_id: string; points_awarded: number }[]
   const redemptions = (redemptionsRows ?? []) as { child_id: string; cost_at_redemption: number }[]
-  const ruleApps = (ruleAppsRows ?? []) as { child_id: string; points_applied: number }[]
+  const ruleApps = (ruleAppsRows ?? []) as { child_id: string; points_applied: number; status?: string }[]
 
   const pointsByChild = new Map<string, { points: number; totalPointsEarned: number }>()
   for (const c of completions) {
@@ -106,6 +106,7 @@ export async function fetchFamilyStateFromSupabase(
     pointsByChild.set(c.child_id, cur)
   }
   for (const r of ruleApps) {
+    if (r.status && r.status !== "approved") continue
     const cur = pointsByChild.get(r.child_id) ?? { points: 0, totalPointsEarned: 0 }
     cur.totalPointsEarned += r.points_applied
     pointsByChild.set(r.child_id, cur)
@@ -120,7 +121,7 @@ export async function fetchFamilyStateFromSupabase(
   }
 
   const children: Child[] = (childrenRows ?? []).map((row: Record<string, unknown>) => {
-    const pc = pointsByChild.get(row.id as string) ?? { points: 0, total: 0 }
+    const pc = pointsByChild.get(row.id as string) ?? { points: 0, totalPointsEarned: 0 }
     return {
       id: row.id as string,
       name: (row.name as string) ?? "",
@@ -128,7 +129,7 @@ export async function fetchFamilyStateFromSupabase(
       avatar: (row.avatar as string) ?? "👤",
       color: (row.color as string) ?? "#94a3b8",
       points: pc.points,
-      totalPointsEarned: pc.total,
+      totalPointsEarned: pc.totalPointsEarned,
       createdAt: new Date().toISOString(),
     }
   })
@@ -186,6 +187,7 @@ export async function fetchFamilyStateFromSupabase(
       emoji: (row.emoji as string) ?? "⚖️",
       category: "behavior" as const,
       isActive: row.is_active !== false,
+      requiresApproval: row.requires_approval === true,
     }
   })
 
@@ -196,6 +198,7 @@ export async function fetchFamilyStateFromSupabase(
       childId: row.child_id as string,
       appliedAt: (row.created_at as string) ?? new Date().toISOString(),
       pointsChanged: typeof row.points_applied === "number" ? row.points_applied : 0,
+      status: (row.status as "pending" | "approved" | "rejected") ?? "approved",
     })
   )
 
@@ -252,6 +255,8 @@ export interface CloudPreviewResult {
   tasks_count: number
   rewards_count: number
   last_updated: string | null
+  /** true wenn unter diesem Sync-Code bereits Daten liegen. */
+  hasData?: boolean
   payload?: Partial<FamilyState>
   /** Fehler von der RPC (z. B. "sync_id required") oder vom Client (z. B. RPC nicht vorhanden). */
   error?: string
@@ -270,11 +275,22 @@ export async function fetchCloudPreview(syncId: string): Promise<CloudPreviewRes
       tasks_count: 0,
       rewards_count: 0,
       last_updated: null,
+      hasData: false,
       error: error.message + hint,
     }
   }
   if (data?.error) {
-    return { children_count: 0, tasks_count: 0, rewards_count: 0, last_updated: null, error: data.error as string }
+    return {
+      children_count: 0,
+      tasks_count: 0,
+      rewards_count: 0,
+      last_updated: null,
+      hasData: false,
+      error: data.error as string,
+    }
   }
-  return data as CloudPreviewResult
+  const result = data as CloudPreviewResult
+  result.hasData =
+    (result.children_count ?? 0) + (result.tasks_count ?? 0) + (result.rewards_count ?? 0) > 0
+  return result
 }

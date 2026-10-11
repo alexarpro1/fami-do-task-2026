@@ -7,23 +7,35 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { useFamily } from "@/context/family-context"
-import { requestNotificationPermission } from "@/hooks/use-task-notifications"
+import { requestNotificationPermission, getNotificationPermission } from "@/lib/notifications"
+
+type PermissionState = "granted" | "denied" | "default"
 
 export function NotificationSettings() {
   const { state, dispatch } = useFamily()
-  const [permission, setPermission] = useState<NotificationPermission>("default")
+  const [permission, setPermission] = useState<PermissionState>("default")
   const [isSupported, setIsSupported] = useState(false)
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      setIsSupported(true)
-      setPermission(Notification.permission)
+  const refreshPermission = async () => {
+    if (typeof window === "undefined") return
+    let supported = false
+    try {
+      const { Capacitor } = await import("@capacitor/core")
+      supported = Capacitor.isNativePlatform() || "Notification" in window
+    } catch {
+      supported = "Notification" in window
     }
+    setIsSupported(supported)
+    if (supported) setPermission(await getNotificationPermission())
+  }
+
+  useEffect(() => {
+    refreshPermission()
   }, [])
 
   const handleRequestPermission = async () => {
     const granted = await requestNotificationPermission()
-    setPermission(granted ? "granted" : "denied")
+    setPermission(await getNotificationPermission())
     if (granted) {
       dispatch({ type: "UPDATE_SETTINGS", payload: { notificationsEnabled: true } })
     }
@@ -41,21 +53,18 @@ export function NotificationSettings() {
     dispatch({ type: "UPDATE_SETTINGS", payload: { notifyBeforeMinutes: value[0] } })
   }
 
-  const sendTestNotification = () => {
-    if (permission === "granted") {
-      new Notification("🔔 Test-Benachrichtigung", {
-        body: "Die Benachrichtigungen funktionieren!",
-        icon: "/favicon.ico",
-      })
-    }
+  const sendTestNotification = async () => {
+    if (permission !== "granted") return
+    const { sendNotification } = await import("@/lib/notifications")
+    await sendNotification("🔔 Test-Benachrichtigung", "Die Benachrichtigungen funktionieren!")
   }
 
   if (!isSupported) {
     return (
       <div className="rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center gap-3 text-muted-foreground">
-          <AlertCircle className="h-5 w-5" />
-          <span>Benachrichtigungen werden von diesem Browser nicht unterstuetzt.</span>
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <span>Benachrichtigungen werden von diesem Gerät/Browser nicht unterstützt.</span>
         </div>
       </div>
     )
@@ -63,18 +72,18 @@ export function NotificationSettings() {
 
   return (
     <div className="space-y-4">
-      {/* Permission Status */}
+      {/* Permission Status – responsive: auf kleinen Screens Button unter dem Text */}
       <div className="rounded-xl bg-card p-4 border border-border">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             {permission === "granted" ? (
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
             ) : permission === "denied" ? (
-              <XCircle className="h-5 w-5 text-red-500" />
+              <XCircle className="h-5 w-5 shrink-0 text-red-500" />
             ) : (
-              <AlertCircle className="h-5 w-5 text-yellow-500" />
+              <AlertCircle className="h-5 w-5 shrink-0 text-yellow-500" />
             )}
-            <div>
+            <div className="min-w-0">
               <p className="font-medium text-foreground">
                 {permission === "granted"
                   ? "Berechtigung erteilt"
@@ -82,17 +91,17 @@ export function NotificationSettings() {
                     ? "Berechtigung verweigert"
                     : "Berechtigung erforderlich"}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground break-words">
                 {permission === "granted"
-                  ? "Du erhaelst Benachrichtigungen fuer Aufgaben."
+                  ? "Du erhältst Benachrichtigungen für Aufgaben."
                   : permission === "denied"
-                    ? "Bitte erlaube Benachrichtigungen in den Browser-Einstellungen."
-                    : "Klicke auf 'Erlauben' um Benachrichtigungen zu aktivieren."}
+                    ? "Bitte erlaube Benachrichtigungen in den Browser- bzw. Geräte-Einstellungen."
+                    : "Klicke auf „Erlauben“, um Benachrichtigungen zu aktivieren."}
               </p>
             </div>
           </div>
           {permission !== "granted" && permission !== "denied" && (
-            <Button onClick={handleRequestPermission} size="sm">
+            <Button onClick={handleRequestPermission} size="sm" className="shrink-0 self-start sm:self-center">
               Erlauben
             </Button>
           )}
@@ -101,16 +110,16 @@ export function NotificationSettings() {
 
       {/* Enable/Disable Toggle */}
       <div className="rounded-xl bg-card p-4 border border-border">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             {state.settings.notificationsEnabled ? (
-              <BellRing className="h-5 w-5 text-primary" />
+              <BellRing className="h-5 w-5 shrink-0 text-primary" />
             ) : (
-              <BellOff className="h-5 w-5 text-muted-foreground" />
+              <BellOff className="h-5 w-5 shrink-0 text-muted-foreground" />
             )}
-            <div>
+            <div className="min-w-0">
               <Label className="font-medium text-foreground">Push-Benachrichtigungen</Label>
-              <p className="text-sm text-muted-foreground">Erinnerungen wenn Zeitfenster beginnen</p>
+              <p className="text-sm text-muted-foreground break-words">Erinnerungen, wenn Zeitfenster beginnen</p>
             </div>
           </div>
           <Switch
@@ -126,10 +135,10 @@ export function NotificationSettings() {
         <>
           <div className="rounded-xl bg-card p-4 border border-border space-y-4">
             <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-primary" />
-              <div>
+              <Clock className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0">
                 <Label className="font-medium text-foreground">Vorab-Erinnerung</Label>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground break-words">
                   {state.settings.notifyBeforeMinutes === 0
                     ? "Benachrichtigung bei Beginn des Zeitfensters"
                     : `${state.settings.notifyBeforeMinutes} Minuten vor Beginn benachrichtigen`}
@@ -146,10 +155,13 @@ export function NotificationSettings() {
                 step={5}
                 className="w-full"
               />
-              <div className="flex justify-between text-xs text-muted-foreground mt-2">
+              <div className="flex justify-between gap-1 text-xs text-muted-foreground mt-2">
                 <span>Sofort</span>
                 <span>5 Min</span>
+                <span>10 Min</span>
                 <span>15 Min</span>
+                <span>20 Min</span>
+                <span>25 Min</span>
                 <span>30 Min</span>
               </div>
             </div>

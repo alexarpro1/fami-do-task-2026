@@ -88,7 +88,7 @@ const getClothingRecommendation = (
     clothing.jacket = isRaining ? "Regenjacke" : "Leichte Jacke"
     clothing.jacketEmoji = isRaining ? "🌧️" : "🧥"
   } else if (maxTemp - minTemp > 10) {
-    clothing.jacket = "Jacke fuer spaeter"
+    clothing.jacket = "Jacke für später"
     clothing.jacketEmoji = "🧥"
   } else {
     clothing.jacket = "Keine Jacke noetig"
@@ -106,7 +106,7 @@ const WEATHER_DATA = {
   },
   cloudy: {
     icon: Cloud,
-    label: "Bewoelkt",
+    label: "Bewölkt",
     emoji: "☁️",
   },
   rainy: {

@@ -13,6 +13,7 @@ import type {
   Task,
   Reward,
   Rule,
+  RuleApplication,
   Pet,
   TaskCompletion,
   MoodEntry,
@@ -532,30 +533,70 @@ function familyReducer(state: FamilyState, action: FamilyAction): FamilyState {
       }
 
       const ruleApplicationId = (action.payload as { ruleApplicationId?: string }).ruleApplicationId
+      const requiresApproval = rule.requiresApproval === true
+      const newApp: RuleApplication = {
+        id: ruleApplicationId ?? generateId(),
+        ruleId: action.payload.ruleId,
+        childId: action.payload.childId,
+        appliedAt: now,
+        pointsChanged: rule.points,
+        note: action.payload.note,
+        status: requiresApproval ? "pending" : "approved",
+      }
+
       return {
         ...state,
-        ruleApplications: [
-          ...(state.ruleApplications || []),
-          {
-            id: ruleApplicationId ?? generateId(),
-            ruleId: action.payload.ruleId,
-            childId: action.payload.childId,
-            appliedAt: now,
-            pointsChanged: rule.points,
-            note: action.payload.note,
-          },
-        ],
+        ruleApplications: [...(state.ruleApplications || []), newApp],
         rules: (state.rules || []).map((r) =>
           r.id === action.payload.ruleId ? { ...r, usageCount: (r.usageCount ?? 0) + 1 } : r,
         ),
+        children:
+          requiresApproval
+            ? state.children
+            : (state.children || []).map((child) =>
+                child.id === action.payload.childId
+                  ? {
+                      ...child,
+                      points: rule.isPositive ? child.points + rule.points : Math.max(0, child.points + rule.points),
+                      totalPointsEarned: rule.isPositive ? child.totalPointsEarned + rule.points : child.totalPointsEarned,
+                    }
+                  : child,
+              ),
+        lastUpdated: now,
+      }
+    }
+
+    case "APPROVE_RULE_APPLICATION": {
+      const app = (state.ruleApplications || []).find((ra) => ra.id === action.payload.applicationId)
+      if (!app || app.status === "approved" || app.status === "rejected") return state
+      const rule = (state.rules || []).find((r) => r.id === app.ruleId)
+      if (!rule) return state
+
+      return {
+        ...state,
+        ruleApplications: (state.ruleApplications || []).map((ra) =>
+          ra.id === action.payload.applicationId ? { ...ra, status: "approved" as const } : ra,
+        ),
         children: (state.children || []).map((child) =>
-          child.id === action.payload.childId
+          child.id === app.childId
             ? {
                 ...child,
                 points: rule.isPositive ? child.points + rule.points : Math.max(0, child.points + rule.points),
                 totalPointsEarned: rule.isPositive ? child.totalPointsEarned + rule.points : child.totalPointsEarned,
               }
             : child,
+        ),
+        lastUpdated: now,
+      }
+    }
+
+    case "REJECT_RULE_APPLICATION": {
+      const app = (state.ruleApplications || []).find((ra) => ra.id === action.payload.applicationId)
+      if (!app || app.status !== "pending") return state
+      return {
+        ...state,
+        ruleApplications: (state.ruleApplications || []).map((ra) =>
+          ra.id === action.payload.applicationId ? { ...ra, status: "rejected" as const } : ra,
         ),
         lastUpdated: now,
       }

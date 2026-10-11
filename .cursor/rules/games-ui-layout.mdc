@@ -34,6 +34,6 @@ Bei **neuen Spielen** oder beim Anpassen bestehender Spiele (z. B. Schach, Dame)
 **Referenz:** `components/games/dame-game.tsx` und `components/games/chess-game.tsx`.
 
 **Dialog „Neues Spiel“:**  
-Overlay z. B. `items-end sm:items-center pb-6 sm:pb-0`, damit auf Mobile der Dialog unten sitzt (nicht mittig).
+Overlay z. B. `items-start justify-center pt-6`, damit der Dialog immer oben zentriert bleibt (auch auf Mobile, unabhängig von der Bildschirmgröße).
 
 Details: DOCUMENTATION.md Abschnitt „4. Spiele-UI (Schach, Dame & neue Spiele)“ → „Einheitliches Layout-Muster“.

@@ -45,7 +45,7 @@ const DIFFICULTIES: { key: TaskDifficulty; label: string; points: number; color:
 
 const TASK_TEMPLATES = [
   {
-    title: "Zaehne putzen",
+    title: "Zähne putzen",
     emoji: "🦷",
     category: "morning" as TaskCategory,
     difficulty: "easy" as TaskDifficulty,
@@ -72,7 +72,7 @@ const TASK_TEMPLATES = [
     endTime: "07:30",
   },
   {
-    title: "Fruehstuecken",
+    title: "Frühstücken",
     emoji: "🥣",
     category: "morning" as TaskCategory,
     difficulty: "easy" as TaskDifficulty,
@@ -90,7 +90,7 @@ const TASK_TEMPLATES = [
     endTime: "17:00",
   },
   {
-    title: "Zimmer aufraeumen",
+    title: "Zimmer aufräumen",
     emoji: "🧹",
     category: "evening" as TaskCategory,
     difficulty: "medium" as TaskDifficulty,
@@ -338,7 +338,7 @@ function InlineTaskForm({
                       }}
                       className="flex-1"
                     >
-                      <Sun className="h-3 w-3 mr-1" /> Ganztaegig
+                      <Sun className="h-3 w-3 mr-1" /> Ganztägig
                     </Button>
                     <Button
                       type="button"
@@ -360,13 +360,11 @@ function InlineTaskForm({
                         value={formData.startTime || "07:00"}
                         onChange={(v) => setFormData({ ...formData, startTime: v })}
                         label="Von"
-                        size="sm"
                       />
                       <TimePicker
                         value={formData.endTime || "09:00"}
                         onChange={(v) => setFormData({ ...formData, endTime: v })}
                         label="Bis"
-                        size="sm"
                       />
                     </div>
                   )}
@@ -610,7 +608,7 @@ export function TaskManager() {
   }
 
   const handleDelete = (id: string) => {
-    if (confirm("Aufgabe wirklich loeschen?")) {
+    if (confirm("Aufgabe wirklich löschen?")) {
       dispatch({ type: "DELETE_TASK", payload: id })
     }
   }
@@ -682,7 +680,7 @@ export function TaskManager() {
         })
         break
       case "delete":
-        if (confirm(`Wirklich ${selectedTasks.length} Aufgaben loeschen?`)) {
+        if (confirm(`Wirklich ${selectedTasks.length} Aufgaben löschen?`)) {
           selectedTasks.forEach((taskId) => {
             dispatch({ type: "DELETE_TASK", payload: taskId })
           })
@@ -779,7 +777,7 @@ export function TaskManager() {
               >
                 Keine
               </Button>
-              <span className="text-sm font-medium text-foreground">{selectedTasks.length} ausgewaehlt</span>
+              <span className="text-sm font-medium text-foreground">{selectedTasks.length} ausgewählt</span>
             </div>
             {selectedTasks.length > 0 && (
               <div className="flex gap-2 flex-wrap">
@@ -1001,9 +999,9 @@ export function TaskManager() {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="font-semibold text-lg text-foreground">
-                {bulkAction === "days" && "Wochentage aendern"}
+                {bulkAction === "days" && "Wochentage ändern"}
                 {bulkAction === "toggle" && "Aktivierung umschalten"}
-                {bulkAction === "delete" && "Aufgaben loeschen"}
+                {bulkAction === "delete" && "Aufgaben löschen"}
               </h3>
 
               {bulkAction === "days" && (
@@ -1018,7 +1016,7 @@ export function TaskManager() {
 
               {bulkAction === "delete" && (
                 <p className="text-sm text-destructive">
-                  {selectedTasks.length} Aufgaben werden unwiderruflich geloescht!
+                  {selectedTasks.length} Aufgaben werden unwiderruflich gelöscht!
                 </p>
               )}
 
@@ -1031,7 +1029,7 @@ export function TaskManager() {
                   variant={bulkAction === "delete" ? "destructive" : "default"}
                   onClick={handleBulkAction}
                 >
-                  Bestaetigen
+                  Bestätigen
                 </Button>
               </div>
             </motion.div>

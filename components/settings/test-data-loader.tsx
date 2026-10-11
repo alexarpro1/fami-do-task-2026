@@ -40,7 +40,7 @@ export function TestDataLoader() {
       tasks: [
         {
           id: "task-1",
-          title: "Zaehne putzen",
+          title: "Zähne putzen",
           emoji: "🪥",
           points: 5,
           category: "morning",
@@ -62,7 +62,7 @@ export function TestDataLoader() {
         },
         {
           id: "task-3",
-          title: "Zimmer aufraeumen",
+          title: "Zimmer aufräumen",
           emoji: "🧹",
           points: 10,
           category: "morning",
@@ -152,7 +152,7 @@ export function TestDataLoader() {
         },
         {
           id: "rule-3",
-          title: "Nicht gehoert",
+          title: "Nicht gehört",
           emoji: "🙉",
           points: -10,
           isPositive: false,
@@ -240,11 +240,11 @@ export function TestDataLoader() {
   }
 
   const resetAllData = () => {
-    if (!confirm("ACHTUNG: Alle Daten werden unwiderruflich geloescht. Fortfahren?")) {
+    if (!confirm("ACHTUNG: Alle Daten werden unwiderruflich gelöscht. Fortfahren?")) {
       return
     }
     dispatch({ type: "RESET_STATE" })
-    alert("Alle Daten wurden zurueckgesetzt!")
+    alert("Alle Daten wurden zurückgesetzt!")
   }
 
   return (

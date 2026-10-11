@@ -104,6 +104,7 @@ export async function pushImportedStateToSupabase(
           point_impact: (r.points ?? 0) * (r.isPositive ? 1 : -1),
           emoji: r.emoji ?? "⚖️",
           is_active: r.isActive !== false,
+          requires_approval: r.requiresApproval === true,
         }))
         const { error } = await supabase.from("rules").upsert(rows, { onConflict: "id" })
         if (error) return { ok: false, error: `rules: ${error.message}` }
@@ -143,6 +144,7 @@ export async function pushImportedStateToSupabase(
           child_id: r.childId,
           points_applied: r.pointsChanged ?? 0,
           created_at: r.appliedAt ?? new Date().toISOString(),
+          status: r.status ?? "approved",
         }))
         const { error } = await supabase.from("rule_applications").upsert(rows, { onConflict: "id" })
         if (error) return { ok: false, error: `rule_applications: ${error.message}` }
@@ -187,6 +189,7 @@ export async function pushImportedStateToSupabase(
         point_impact: (r.points ?? 0) * (r.isPositive ? 1 : -1),
         emoji: r.emoji ?? "⚖️",
         is_active: r.isActive !== false,
+        requires_approval: r.requiresApproval === true,
       }))
       const pTaskCompletions = state.taskCompletions.map((c: TaskCompletion) => ({
         id: c.id,
@@ -208,6 +211,7 @@ export async function pushImportedStateToSupabase(
         child_id: r.childId,
         points_applied: r.pointsChanged ?? 0,
         created_at: r.appliedAt ?? new Date().toISOString(),
+        status: r.status ?? "approved",
       }))
 
       const { data, error } = await supabase.rpc("push_backup_data", {

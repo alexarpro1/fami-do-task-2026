@@ -5,6 +5,7 @@ import type React from "react"
 import { useMemo, useState } from "react"
 import { useFamily } from "@/context/family-context"
 import { ChildAvatar } from "@/components/child/child-avatar"
+import type { TaskCompletion } from "@/types"
 import { TrendingUp, TrendingDown, Award, CheckCircle } from "lucide-react"
 
 export function StatisticsPanel() {
@@ -25,8 +26,11 @@ export function StatisticsPanel() {
       date.setDate(date.getDate() - i)
       const dateStr = date.toISOString().split("T")[0]
 
-      // Count completed tasks for this day
-      const completedCount = selectedChild?.completedTasks?.filter((ct) => ct.date === dateStr).length || 0
+      // Count completed tasks for this day (from taskCompletions)
+      const completedCount =
+        (state.taskCompletions ?? []).filter(
+          (tc) => tc.childId === selectedChild?.id && tc.completedAt.startsWith(dateStr),
+        ).length || 0
 
       days.push({
         date: dateStr,
@@ -37,27 +41,27 @@ export function StatisticsPanel() {
       })
     }
     return days
-  }, [selectedChild])
+  }, [selectedChild, state.taskCompletions])
 
   const maxCount = Math.max(...weekData.map((d) => d.count), 5)
 
   const stats = useMemo(() => {
     if (!selectedChild) return null
 
-    const totalCompleted = selectedChild.completedTasks?.length || 0
+    const totalCompleted = (state.taskCompletions ?? []).filter((tc) => tc.childId === selectedChild.id).length
     const totalTasks = (state.tasks || []).filter((t) => t?.isActive).length
     const weekTotal = weekData.reduce((sum, d) => sum + d.count, 0)
     const avgPerDay = weekTotal / 7
 
     return {
       totalPoints: selectedChild.points || 0,
-      totalEarned: selectedChild.totalEarned || 0,
+      totalEarned: selectedChild.totalPointsEarned || 0,
       totalCompleted,
       weekTotal,
       avgPerDay: avgPerDay.toFixed(1),
       streak: calculateStreak(weekData),
     }
-  }, [selectedChild, weekData, state.tasks])
+  }, [selectedChild, weekData, state.tasks, state.taskCompletions])
 
   return (
     <div className="space-y-6">
@@ -75,7 +79,7 @@ export function StatisticsPanel() {
                     : "bg-card text-muted-foreground hover:text-foreground"
                 }`}
             >
-              <ChildAvatar avatar={child.avatar} color={child.color} size="sm" showBorder={false} />
+              <ChildAvatar avatar={child.avatar} color={child.color} size="sm" showRing={false} />
               <span className="font-medium">{child.name}</span>
             </button>
           ))}
@@ -152,14 +156,15 @@ export function StatisticsPanel() {
           <div className="bg-card rounded-2xl p-4 neu-flat">
             <h3 className="font-semibold text-foreground mb-4">Letzte Aktivitaeten</h3>
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {(selectedChild.completedTasks || [])
-                .slice(-10)
-                .reverse()
-                .map((ct, idx) => {
-                  const task = (state.tasks || []).find((t) => t?.id === ct?.taskId)
+              {((state.taskCompletions ?? [])
+                .filter((tc: TaskCompletion) => tc.childId === selectedChild.id)
+                .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+                .slice(0, 10)
+                .map((ct) => {
+                  const task = (state.tasks || []).find((t) => t?.id === ct.taskId)
                   return (
                     <div
-                      key={idx}
+                      key={ct.id}
                       className="flex items-center justify-between py-2 border-b border-border last:border-0"
                     >
                       <div className="flex items-center gap-2">
@@ -168,13 +173,13 @@ export function StatisticsPanel() {
                       </div>
                       <div className="text-right">
                         <span className="text-xs text-muted-foreground">
-                          {new Date(ct.date).toLocaleDateString("de-DE", { day: "numeric", month: "short" })}
+                          {new Date(ct.completedAt).toLocaleDateString("de-DE", { day: "numeric", month: "short" })}
                         </span>
                       </div>
                     </div>
                   )
-                })}
-              {(!selectedChild.completedTasks || selectedChild.completedTasks.length === 0) && (
+                }) )}
+              {(state.taskCompletions ?? []).filter((tc) => tc.childId === selectedChild.id).length === 0 && (
                 <p className="text-center text-muted-foreground py-4">Noch keine Aktivitaeten</p>
               )}
             </div>
@@ -182,7 +187,7 @@ export function StatisticsPanel() {
         </>
       ) : (
         <div className="text-center py-12 text-muted-foreground">
-          Keine Kinder vorhanden. Fuege zuerst ein Kind hinzu.
+          Keine Kinder vorhanden. Füge zuerst ein Kind hinzu.
         </div>
       )}
     </div>

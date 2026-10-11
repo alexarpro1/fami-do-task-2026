@@ -12,7 +12,7 @@ export function generateFamilyCode(): string {
   return code
 }
 
-// Generiert eine eindeutige Geraete-ID
+// Generiert eine eindeutige Geräte-ID
 export function getDeviceId(): string {
   if (typeof window === "undefined") return ""
 
@@ -42,7 +42,7 @@ export async function createFamily(familyName: string): Promise<{
 }> {
   const supabase = getSafeSupabaseClient()
   if (!supabase) {
-    return { success: false, error: "Datenbankverbindung nicht verfuegbar" }
+    return { success: false, error: "Datenbankverbindung nicht verfügbar" }
   }
 
   const deviceId = getDeviceId()
@@ -93,7 +93,7 @@ export async function joinFamily(
 }> {
   const supabase = getSafeSupabaseClient()
   if (!supabase) {
-    return { success: false, error: "Datenbankverbindung nicht verfuegbar" }
+    return { success: false, error: "Datenbankverbindung nicht verfügbar" }
   }
 
   const deviceId = getDeviceId()
@@ -106,7 +106,7 @@ export async function joinFamily(
       .single()
 
     if (familyError || !family) {
-      return { success: false, error: "Familie nicht gefunden. Bitte Code pruefen." }
+      return { success: false, error: "Familie nicht gefunden. Bitte Code prüfen." }
     }
 
     const { data: existingMember } = await supabase
@@ -136,7 +136,7 @@ export async function joinFamily(
     const { error: memberError } = await supabase.from("family_members").insert({
       family_id: family.id,
       device_id: deviceId,
-      device_name: childId ? `Kind-Geraet` : "Eltern-Geraet",
+      device_name: childId ? `Kind-Gerät` : "Eltern-Gerät",
       role: role,
       child_id: childId || null,
     })
@@ -194,7 +194,7 @@ export async function pushData(state: FamilyState): Promise<{
 }> {
   const supabase = getSafeSupabaseClient()
   if (!supabase) {
-    return { success: false, error: "Datenbankverbindung nicht verfuegbar" }
+    return { success: false, error: "Datenbankverbindung nicht verfügbar" }
   }
 
   const familyId = localStorage.getItem("famiapp_family_id")
@@ -242,7 +242,7 @@ export async function pushData(state: FamilyState): Promise<{
 // Sync Children
 export async function syncChildren(children: Child[]): Promise<{ success: boolean; error?: string }> {
   const supabase = getSafeSupabaseClient()
-  if (!supabase) return { success: false, error: "Datenbankverbindung nicht verfuegbar" }
+  if (!supabase) return { success: false, error: "Datenbankverbindung nicht verfügbar" }
 
   const familyId = localStorage.getItem("famiapp_family_id")
   const deviceId = getDeviceId()
@@ -281,7 +281,7 @@ export async function syncChildren(children: Child[]): Promise<{ success: boolea
 // Sync Tasks
 export async function syncTasks(tasks: Task[]): Promise<{ success: boolean; error?: string }> {
   const supabase = getSafeSupabaseClient()
-  if (!supabase) return { success: false, error: "Datenbankverbindung nicht verfuegbar" }
+  if (!supabase) return { success: false, error: "Datenbankverbindung nicht verfügbar" }
 
   const familyId = localStorage.getItem("famiapp_family_id")
   const deviceId = getDeviceId()
@@ -325,7 +325,7 @@ export async function syncTasks(tasks: Task[]): Promise<{ success: boolean; erro
 // Sync Rewards
 export async function syncRewards(rewards: Reward[]): Promise<{ success: boolean; error?: string }> {
   const supabase = getSafeSupabaseClient()
-  if (!supabase) return { success: false, error: "Datenbankverbindung nicht verfuegbar" }
+  if (!supabase) return { success: false, error: "Datenbankverbindung nicht verfügbar" }
 
   const familyId = localStorage.getItem("famiapp_family_id")
   const deviceId = getDeviceId()
@@ -362,7 +362,7 @@ export async function syncRewards(rewards: Reward[]): Promise<{ success: boolean
 // Sync Rules
 export async function syncRules(rules: Rule[]): Promise<{ success: boolean; error?: string }> {
   const supabase = getSafeSupabaseClient()
-  if (!supabase) return { success: false, error: "Datenbankverbindung nicht verfuegbar" }
+  if (!supabase) return { success: false, error: "Datenbankverbindung nicht verfügbar" }
 
   const familyId = localStorage.getItem("famiapp_family_id")
   const deviceId = getDeviceId()
@@ -400,7 +400,7 @@ export async function syncRules(rules: Rule[]): Promise<{ success: boolean; erro
 // Sync Settings
 export async function syncSettings(settings: AppSettings): Promise<{ success: boolean; error?: string }> {
   const supabase = getSafeSupabaseClient()
-  if (!supabase) return { success: false, error: "Datenbankverbindung nicht verfuegbar" }
+  if (!supabase) return { success: false, error: "Datenbankverbindung nicht verfügbar" }
 
   const familyId = localStorage.getItem("famiapp_family_id")
   const deviceId = getDeviceId()
@@ -476,7 +476,7 @@ export async function pullData(): Promise<{
 }> {
   const supabase = getSafeSupabaseClient()
   if (!supabase) {
-    return { success: false, error: "Datenbankverbindung nicht verfuegbar" }
+    return { success: false, error: "Datenbankverbindung nicht verfügbar" }
   }
 
   const familyId = localStorage.getItem("famiapp_family_id")
@@ -520,7 +520,7 @@ export async function pullDataGranular(): Promise<{
   error?: string
 }> {
   const supabase = getSafeSupabaseClient()
-  if (!supabase) return { success: false, error: "Datenbankverbindung nicht verfuegbar" }
+  if (!supabase) return { success: false, error: "Datenbankverbindung nicht verfügbar" }
 
   const familyId = localStorage.getItem("famiapp_family_id")
   if (!familyId) return { success: false, error: "Nicht mit Familie verbunden" }
@@ -653,7 +653,7 @@ export async function getFamilyMembers(): Promise<{
 }> {
   const supabase = getSafeSupabaseClient()
   if (!supabase) {
-    return { success: false, error: "Datenbankverbindung nicht verfuegbar" }
+    return { success: false, error: "Datenbankverbindung nicht verfügbar" }
   }
 
   const familyId = localStorage.getItem("famiapp_family_id")
@@ -685,7 +685,7 @@ export async function removeFamilyMember(memberId: string): Promise<{
 }> {
   const supabase = getSafeSupabaseClient()
   if (!supabase) {
-    return { success: false, error: "Datenbankverbindung nicht verfuegbar" }
+    return { success: false, error: "Datenbankverbindung nicht verfügbar" }
   }
 
   const role = localStorage.getItem("famiapp_role")
@@ -749,7 +749,7 @@ export async function getFamilyInfo(): Promise<{
   }
 }
 
-// Echtzeit-Subscription fuer Sync
+// Echtzeit-Subscription für Sync
 export function subscribeToFamilyChanges(onDataChanged: (newData: FamilyState) => void): (() => void) | null {
   // DISABLED: Supabase Realtime causes persistent CHANNEL_ERROR in this environment
   console.log("[FdT] subscribeToFamilyChanges is disabled - use manual sync instead")

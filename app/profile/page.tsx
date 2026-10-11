@@ -141,8 +141,8 @@ export default function ProfilePage() {
       <AppShell>
         <EmptyState
           icon="👤"
-          title="Kein Kind ausgewaehlt"
-          description="Waehle zuerst ein Kind aus."
+          title="Kein Kind ausgewählt"
+          description="Wähle zuerst ein Kind aus."
           action={
             <Link href="/">
               <Button>Zur Startseite</Button>
@@ -246,7 +246,7 @@ export default function ProfilePage() {
             className="flex-shrink-0"
           >
             <TrendingUp className="w-4 h-4 mr-1" />
-            Uebersicht
+            Übersicht
           </Button>
           <Button
             variant={activeTab === "achievements" ? "default" : "outline"}

@@ -200,7 +200,7 @@ export function DeviceDashboard() {
                   <p className="text-sm font-medium">
                     {label} {isCurrent ? "(dieses Gerät)" : ""}
                   </p>
-                  <p className="text-xs text-muted-foreground">Zuletzt aktiv: {formatLastActive(device.last_active)}</p>
+                  <p className="text-xs text-muted-foreground">Zuletzt aktiv: {formatLastActive(device.last_active ?? null)}</p>
                 </div>
               </div>
             )

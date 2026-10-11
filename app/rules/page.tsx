@@ -16,6 +16,7 @@ type SortMode = "default" | "points-asc" | "points-desc"
 
 export default function RulesPage() {
   const { state, selectedChild, dispatch, getTodayRuleApplications } = useFamily()
+  const { applyRule } = useSupabaseMutations()
   const [celebration, setCelebration] = useState<{ active: boolean; points: number; message: string }>({
     active: false,
     points: 0,

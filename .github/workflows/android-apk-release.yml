@@ -1,0 +1,143 @@
+name: Android APK Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-release
+  cancel-in-progress: false
+
+jobs:
+  build-and-release-apk:
+    runs-on: ubuntu-latest
+    env:
+      FAMIAPP_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      FAMIAPP_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      FAMIAPP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bump version and create backup
+        run: npm run version:update
+
+      - name: Build web and sync Capacitor
+        run: npm run build:mobile
+
+      - name: Decode Android keystore
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "ANDROID_KEYSTORE_BASE64 fehlt. Bitte als GitHub Secret setzen."
+            exit 1
+          fi
+          KEYSTORE_PATH="$RUNNER_TEMP/famiapp-release.jks"
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$KEYSTORE_PATH"
+          echo "FAMIAPP_STORE_FILE=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+
+      - name: Read version metadata
+        id: meta
+        shell: bash
+        run: |
+          VERSION_NAME=$(node -e "const v=require('./version.json'); process.stdout.write(`${v.major}.${v.minor}.${v.patch}.${v.build}`)")
+          VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "release_tag=apk-v$VERSION_NAME-$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Build signed release APK
+        working-directory: android
+        run: |
+          ./gradlew assembleRelease \
+            -PFAMIAPP_VERSION_CODE=${{ steps.meta.outputs.version_code }} \
+            -PFAMIAPP_VERSION_NAME=${{ steps.meta.outputs.version_name }} \
+            -PFAMIAPP_STORE_FILE="${{ env.FAMIAPP_STORE_FILE }}" \
+            -PFAMIAPP_STORE_PASSWORD="${{ env.FAMIAPP_STORE_PASSWORD }}" \
+            -PFAMIAPP_KEY_ALIAS="${{ env.FAMIAPP_KEY_ALIAS }}" \
+            -PFAMIAPP_KEY_PASSWORD="${{ env.FAMIAPP_KEY_PASSWORD }}"
+
+      - name: Prepare release assets
+        id: assets
+        shell: bash
+        run: |
+          mkdir -p dist
+          UNIVERSAL="android/app/build/outputs/apk/release/app-release.apk"
+          ARM64="android/app/build/outputs/apk/release/app-arm64-v8a-release.apk"
+          if [ -f "$UNIVERSAL" ]; then
+            cp "$UNIVERSAL" "dist/FamiApp-${{ steps.meta.outputs.version_name }}.apk"
+            cp "$UNIVERSAL" "dist/FamiApp-latest.apk"
+          elif [ -f "$ARM64" ]; then
+            echo "Hinweis: Nur ABI-Splits gefunden (gradlew -PfamiAbiSplits?) – arm64 als Fallback."
+            cp "$ARM64" "dist/FamiApp-${{ steps.meta.outputs.version_name }}.apk"
+            cp "$ARM64" "dist/FamiApp-latest.apk"
+          else
+            echo "Keine Release-APK gefunden unter android/app/build/outputs/apk/release/"
+            ls -la android/app/build/outputs/apk/release/ || true
+            exit 1
+          fi
+          cp public/version.json "dist/version.json"
+          APK_SHA=$(sha256sum "dist/FamiApp-latest.apk" | awk '{print $1}')
+          APK_URL="https://github.com/${{ github.repository }}/releases/latest/download/FamiApp-latest.apk"
+          VERSION_NAME="${{ steps.meta.outputs.version_name }}"
+          PUBLISHED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          export APK_SHA APK_URL VERSION_NAME PUBLISHED_AT
+          node -e "
+            const fs = require('fs');
+            const v = JSON.parse(fs.readFileSync('dist/version.json', 'utf8'));
+            v.version = process.env.VERSION_NAME;
+            v.apkUrl = process.env.APK_URL;
+            v.apkSha256 = process.env.APK_SHA;
+            v.publishedAt = process.env.PUBLISHED_AT;
+            fs.writeFileSync('dist/version.json', JSON.stringify(v, null, 2) + '\n');
+          "
+          echo "apk_sha256=$APK_SHA" >> "$GITHUB_OUTPUT"
+          echo "apk_url=$APK_URL" >> "$GITHUB_OUTPUT"
+          echo "APK SHA-256: $APK_SHA"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.release_tag }}
+          name: FamiApp APK ${{ steps.meta.outputs.version_name }}
+          generate_release_notes: true
+          files: |
+            dist/FamiApp-${{ steps.meta.outputs.version_name }}.apk
+            dist/FamiApp-latest.apk
+            dist/version.json
+          body: |
+            Automatisch gebauter APK-Release (Universal-APK, signiert).
+
+            **Eine Datei fuer alle Geraete:** `FamiApp-latest.apk` enthaelt armeabi-v7a, arm64-v8a und x86_64.
+            Android laedt zur Laufzeit die passenden Native-Libs (Handy, ARM-Tablet, Intel-Tablet).
+
+            Freier Speicher fuer Installation: ca. **350–450 MB** (grosse APK + entpackte yt-dlp/ffmpeg Native-Libs).
+
+            Direkter Download (immer neueste APK):
+            https://github.com/${{ github.repository }}/releases/latest/download/FamiApp-latest.apk
+
+            Manifest: `version.json` (inkl. `apkUrl`, `apkSha256`, `publishedAt`)
+
+            SHA-256 (`FamiApp-latest.apk`):
+            `${{ steps.assets.outputs.apk_sha256 }}`

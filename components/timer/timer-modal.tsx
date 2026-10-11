@@ -25,6 +25,7 @@ const TIMER_THEMES: { id: TimerTheme; label: string; emoji: string }[] = [
 
 export function TimerModal({ task, childId, onClose, onComplete }: TimerModalProps) {
   const { dispatch, state } = useFamily()
+  const { completeTask } = useSupabaseMutations()
   const [theme, setTheme] = useState<TimerTheme>("circle")
   const [soundEnabled, setSoundEnabled] = useState(state.settings.timerSoundEnabled)
   const [showConfetti, setShowConfetti] = useState(false)

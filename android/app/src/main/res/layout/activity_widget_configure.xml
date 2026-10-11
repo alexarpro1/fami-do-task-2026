@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0f172a"
+    android:padding="16dp">
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/config_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:text="FamiDo Widget konfigurieren"
+        android:textColor="#f8fafc"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <!-- Child Selection -->
+    <TextView
+        android:id="@+id/child_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/config_title"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="24dp"
+        android:text="Kind auswählen:"
+        android:textColor="#cbd5e1"
+        android:textSize="14sp" />
+
+    <Spinner
+        android:id="@+id/child_spinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/child_label"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/widget_button_bg"
+        android:padding="8dp" />
+
+    <!-- Save Button -->
+    <Button
+        android:id="@+id/btn_save_config"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/child_spinner"
+        android:layout_marginTop="24dp"
+        android:background="@drawable/widget_button_bg"
+        android:text="Speichern"
+        android:textColor="#f8fafc"
+        android:textSize="16sp" />
+
+</RelativeLayout>
+

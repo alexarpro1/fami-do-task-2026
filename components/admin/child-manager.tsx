@@ -75,13 +75,13 @@ export function ChildManager() {
   }
 
   const handleDelete = (childId: string) => {
-    if (confirm("Dieses Kind wirklich loeschen? Alle Punkte gehen verloren.")) {
+    if (confirm("Dieses Kind wirklich löschen? Alle Punkte gehen verloren.")) {
       dispatch({ type: "DELETE_CHILD", payload: childId })
     }
   }
 
   const handleResetPoints = (childId: string) => {
-    if (confirm("Alle Punkte dieses Kindes zuruecksetzen?")) {
+    if (confirm("Alle Punkte dieses Kindes zurücksetzen?")) {
       dispatch({
         type: "UPDATE_CHILD",
         payload: {
@@ -146,7 +146,7 @@ export function ChildManager() {
         variant={showAddForm ? "secondary" : "default"}
       >
         <Plus className="w-4 h-4 mr-2" />
-        Kind hinzufuegen
+        Kind hinzufügen
       </Button>
 
       {/* Add Form */}
@@ -287,7 +287,7 @@ export function ChildManager() {
                     variant="ghost"
                     onClick={() => handleResetPoints(child.id)}
                     className="rounded-full text-muted-foreground hover:text-warning"
-                    title="Punkte zuruecksetzen"
+                    title="Punkte zurücksetzen"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </Button>
@@ -405,7 +405,7 @@ export function ChildManager() {
                     type="text"
                     value={pointsReason}
                     onChange={(e) => setPointsReason(e.target.value)}
-                    placeholder={pointsAmount >= 0 ? "z.B. Bonus fuer gutes Verhalten" : "z.B. Strafe fuer Regelbruch"}
+                    placeholder={pointsAmount >= 0 ? "z.B. Bonus für gutes Verhalten" : "z.B. Strafe für Regelbruch"}
                     className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground"
                   />
                 </div>

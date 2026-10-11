@@ -13,8 +13,8 @@ const androidDir = path.join(root, "android");
 // Alle bekannten Build-Ordner + dynamisch alle @capacitor/*/android/build
 function getDirsToRemove() {
   const fixed = [
-    path.join(root, "android", "app", "build"),
-    path.join(root, "android", "build"),
+    // path.join(root, "android", "app", "build"),  // Auskommentiert: Darf nicht mehr gelöscht werden
+    // path.join(root, "android", "build"),         // Auskommentiert: Darf nicht mehr gelöscht werden
   ];
   const capacitorRoot = path.join(root, "node_modules", "@capacitor");
   const list = [...fixed];

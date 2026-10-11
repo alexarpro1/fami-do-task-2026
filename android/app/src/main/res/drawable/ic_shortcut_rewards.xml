@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportHeight="108"
+    android:viewportWidth="108">
+    <!-- Background -->
+    <path
+        android:fillColor="#0f172a"
+        android:pathData="M0,0h108v108h-108z" />
+    <!-- Gift/Reward Star -->
+    <path
+        android:fillColor="#ec4899"
+        android:pathData="M54,30 L58,43 L72,43 L62,51 L66,64 L54,56 L42,64 L46,51 L36,43 L50,43 Z" />
+</vector>
+

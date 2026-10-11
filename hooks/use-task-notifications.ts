@@ -74,7 +74,7 @@ export function useTaskNotifications() {
         const childName = selectedChild.name
 
         let title = `${emoji} ${task.title} startet jetzt!`
-        let body = `Hey ${childName}! Zeit fuer: ${task.title}`
+        let body = `Hey ${childName}! Zeit für: ${task.title}`
 
         if (notifyBefore > 0) {
           title = `${emoji} ${task.title} startet in ${notifyBefore} Min!`

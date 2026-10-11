@@ -15,7 +15,7 @@ const PET_EVOLUTION_DATA = {
       { emoji: "😺", name: "Junge Katze", description: "Verspielt und voller Energie" },
       { emoji: "😸", name: "Erwachsene Katze", description: "Elegant und selbstbewusst" },
       { emoji: "🐈", name: "Weise Katze", description: "Erfahren und gelassen" },
-      { emoji: "🐈‍⬛", name: "Legendaere Katze", description: "Mystisch und maechtig" },
+      { emoji: "🐈‍⬛", name: "Legendäre Katze", description: "Mystisch und mächtig" },
     ],
   },
   dog: {
@@ -24,7 +24,7 @@ const PET_EVOLUTION_DATA = {
       { emoji: "🐕", name: "Junger Hund", description: "Energisch und verspielt" },
       { emoji: "🦮", name: "Erwachsener Hund", description: "Loyal und beschuetzend" },
       { emoji: "🐕‍🦺", name: "Weiser Hund", description: "Ein wahrer Begleiter" },
-      { emoji: "🐺", name: "Legendaerer Wolf", description: "Majestaetisch und stark" },
+      { emoji: "🐺", name: "Legendärer Wolf", description: "Majestätisch und stark" },
     ],
   },
   bunny: {
@@ -42,7 +42,7 @@ const PET_EVOLUTION_DATA = {
       { emoji: "🐲", name: "Baby-Drache", description: "Klein aber feurig" },
       { emoji: "🔥", name: "Junger Drache", description: "Lernt Feuer zu speien" },
       { emoji: "🌟", name: "Erwachsener Drache", description: "Maechtig und weise" },
-      { emoji: "🐉", name: "Ur-Drache", description: "Der maechtigste aller Drachen" },
+      { emoji: "🐉", name: "Ur-Drache", description: "Der mächtigste aller Drachen" },
     ],
   },
   unicorn: {

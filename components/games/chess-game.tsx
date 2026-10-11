@@ -30,7 +30,7 @@ import {
 import { ChessPieceModern } from "@/components/games/chess-pieces-modern"
 import { ChessPiecePremium } from "@/components/games/chess-pieces-premium"
 import { cn } from "@/lib/utils"
-import { Settings2, ZoomIn, ZoomOut, RotateCcw, Users, Cpu, Trophy, BookOpen, ChevronDown, ChevronUp } from "lucide-react"
+import { Settings2, ZoomIn, ZoomOut, RotateCcw, Users, Cpu, Trophy, BookOpen, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react"
 import { applyXpAndGetBonuses, getLevelProgress, getNextBonusLevel } from "@/lib/game-progression"
 
 const POINTS_WIN = 30
@@ -368,9 +368,10 @@ function saveChessPrefs(prefs: ChessPrefs): void {
 interface ChessGameProps {
   onAwardPoints: (points: number, message: string) => void
   onClose: () => void
+  onNextGame?: () => void
 }
 
-export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
+export function ChessGame({ onAwardPoints, onClose, onNextGame }: ChessGameProps) {
   const [board, setBoard] = useState<Board>(() => createInitialBoard())
   const [turn, setTurn] = useState<Color>("w")
   const [selected, setSelected] = useState<Pos | null>(null)
@@ -389,8 +390,30 @@ export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
   const [pieceSetId, setPieceSetId] = useState<PieceSetId>("classic")
   const [pieceColorMode, setPieceColorMode] = useState<PieceColorModeId>("design")
   const [showSettings, setShowSettings] = useState(false)
+  const settingsAutoCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!showSettings) return
+    settingsAutoCloseRef.current = setTimeout(() => setShowSettings(false), 10_000)
+    return () => {
+      if (settingsAutoCloseRef.current) {
+        clearTimeout(settingsAutoCloseRef.current)
+        settingsAutoCloseRef.current = null
+      }
+    }
+  }, [showSettings])
+
+  const resetSettingsAutoClose = useCallback(() => {
+    if (settingsAutoCloseRef.current) {
+      clearTimeout(settingsAutoCloseRef.current)
+      settingsAutoCloseRef.current = setTimeout(() => setShowSettings(false), 10_000)
+    }
+  }, [])
+
   const [showCoordinates, setShowCoordinates] = useState(true)
   const [showNewGameChoice, setShowNewGameChoice] = useState(false)
+  /** Im „Neues Spiel“-Dialog gewählter Modus (wird erst beim Klick auf Starten übernommen). */
+  const [pendingNewGameMode, setPendingNewGameMode] = useState<GameModeId>("two")
   const [isComputerThinking, setIsComputerThinking] = useState(false)
   const computerMoveAllowedRef = useRef(false)
   const [chessLevel, setChessLevel] = useState(1)
@@ -409,6 +432,10 @@ export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
 
   const { xpInCurrentLevel, xpForNextLevel, nextLevel } = getLevelProgress(chessXp, CHESS_XP_PER_LEVEL)
   const nextBonusLevel = getNextBonusLevel(CHESS_GAME_ID, chessLevel)
+
+  useEffect(() => {
+    if (showNewGameChoice) setPendingNewGameMode(gameMode)
+  }, [showNewGameChoice])
 
   // Im KI-Modus: Zustand zu Beginn jedes menschlichen Zugs für „Zug zurück“ speichern
   useEffect(() => {
@@ -768,10 +795,11 @@ export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
           </div>
         )}
         <div className="flex gap-3 justify-center flex-wrap">
+          <Button onClick={onClose} variant="outline" className="bg-primary/10 hover:bg-primary/15 text-primary border-primary/20">Zurück zu den Spielen</Button>
           <Button variant="outline" onClick={resetGame}>
             Nochmal spielen
           </Button>
-          <Button onClick={onClose}>Zurück zu den Spielen</Button>
+          <Button onClick={resetGame}>Weiter</Button>
         </div>
       </div>
     )
@@ -783,8 +811,13 @@ export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
     <div className="space-y-4 relative">
       {/* Overlay: Neues Spiel – Modus wählen */}
       {showNewGameChoice && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm rounded-xl">
-          <div className="p-6 rounded-2xl border border-border bg-card shadow-xl max-w-sm w-full mx-4 space-y-4">
+        <div className="fixed inset-0 z-[100] flex flex-col bg-background">
+          <Button variant="ghost" size="sm" className="self-start m-4 gap-2 shrink-0" onClick={onClose}>
+            <ArrowLeft className="w-4 h-4" />
+            Zurück zu den Spielen
+          </Button>
+          <div className="flex-1 flex items-start justify-center pt-6">
+            <div className="flex flex-col justify-start items-center p-6 rounded-2xl border border-border bg-card shadow-xl max-w-sm w-full mx-4 space-y-4">
             <p className="text-lg font-semibold text-foreground text-center">Neues Spiel</p>
             <p className="text-sm text-muted-foreground text-center">Wie möchtest du spielen?</p>
             <div className="grid gap-3">
@@ -793,9 +826,9 @@ export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
                 return (
                   <Button
                     key={mode.id}
-                    variant="outline"
-                    className="h-12 justify-start gap-3"
-                    onClick={() => startNewGame(mode.id)}
+                    variant={pendingNewGameMode === mode.id ? "secondary" : "outline"}
+                    className={cn("h-[50px] min-w-[140px] justify-start gap-3", pendingNewGameMode !== mode.id && "border border-border")}
+                    onClick={() => setPendingNewGameMode(mode.id)}
                   >
                     <Icon className="h-5 w-5" />
                     {mode.name}
@@ -803,24 +836,44 @@ export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
                 )
               })}
             </div>
-            <Button variant="ghost" className="w-full" onClick={() => setShowNewGameChoice(false)}>
-              Abbrechen
-            </Button>
+            {pendingNewGameMode === "computer" && (
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-2">Schwierigkeit</p>
+                <select
+                  value={aiDifficulty}
+                  onChange={(e) => setAiDifficulty(e.target.value as ChessAIDifficulty)}
+                  className="w-full text-sm rounded-lg border border-border bg-background px-3 py-2"
+                >
+                  {CHESS_AI_DIFFICULTIES.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={() => startNewGame(pendingNewGameMode)}>
+                Starten
+              </Button>
+              <Button variant="ghost" className="flex-1" onClick={() => setShowNewGameChoice(false)}>
+                Abbrechen
+              </Button>
+            </div>
+            </div>
           </div>
         </div>
       )}
-      {/* Infoleiste */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-medium">
-            <Trophy className="h-3.5 w-3.5" />
+      {/* Infoleiste – kompakt, einheitlich mit Regeln-Karte */}
+      <div className="flex flex-wrap items-center justify-between gap-1.5 py-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[11px] font-medium">
+            <Trophy className="h-3 w-3" />
             Level {chessLevel}
             {chessLevel <= 5 && " (Lehrling)"}
             {chessLevel >= 6 && chessLevel <= 15 && " (Geselle)"}
             {chessLevel >= 16 && chessLevel <= 30 && " (Meister)"}
             {chessLevel > 30 && " (Endlos)"}
           </span>
-          <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+          <div className="flex flex-col gap-0 text-[11px] text-muted-foreground">
             <p>
               Du spielst <strong>Weiß</strong> (unten). Sieg = +{POINTS_WIN} Goldmünzen, Patt = +{POINTS_DRAW} Goldmünzen.
             </p>
@@ -831,68 +884,67 @@ export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Button
             variant={showSettings ? "secondary" : "outline"}
             size="sm"
-            className="h-11 min-w-[44px] gap-2 px-3 text-sm font-medium"
+            className="h-8 min-w-[36px] gap-1.5 px-2.5 text-xs font-medium"
             onClick={() => setShowSettings((s) => !s)}
             aria-label="Einstellungen"
           >
-            <Settings2 className="h-4 w-4 shrink-0" />
+            <Settings2 className="h-3.5 w-3.5 shrink-0" />
             Einstellungen
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-11 min-w-[44px] gap-2 px-3 text-sm font-medium"
+            className="h-8 min-w-[36px] gap-1.5 px-2.5 text-xs font-medium"
             onClick={resetGame}
             aria-label="Neu starten"
           >
-            <RotateCcw className="h-4 w-4 shrink-0" />
+            <RotateCcw className="h-3.5 w-3.5 shrink-0" />
             Neu starten
           </Button>
         </div>
       </div>
 
-      {/* Golden Rules + Herausforderungen nebeneinander (ab md) */}
-      <div className="grid gap-3 md:grid-cols-2">
+      {/* Regeln + Herausforderungen – kompakt, ca. 1/5 Breite, für jedes Spiel gleich */}
+      <div className="w-max max-w-[min(100%,22rem)] rounded-xl border border-border bg-card overflow-hidden">
         {/* Die goldenen Regeln (aufklappbar) */}
-        <div className="rounded-xl border border-border bg-muted/30 overflow-hidden">
+        <div className="bg-muted/30">
           <button
             type="button"
             onClick={() => setShowRules(!showRules)}
-            className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50"
+            className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50"
           >
-            <span className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
+            <span className="flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5" />
               Die goldenen Regeln
             </span>
-            {showRules ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {showRules ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
           {showRules && (
-            <ul className="px-3 pb-3 pt-0 text-xs text-muted-foreground space-y-1 list-disc list-inside">
+            <ul className="px-2.5 pb-2 pt-0 text-[11px] text-muted-foreground space-y-0.5 list-disc list-inside">
               {CHESS_GOLDEN_RULES.map((rule, i) => (
                 <li key={i}>{rule}</li>
               ))}
             </ul>
           )}
         </div>
-
         {/* Herausforderungen */}
         {challenges.length > 0 && (
-          <div className="rounded-xl border border-border bg-card p-3">
-            <p className="text-xs font-medium text-foreground mb-2">Herausforderungen</p>
-            <ul className="space-y-1.5">
+          <div className="border-t border-border px-2.5 py-2">
+            <p className="text-[11px] font-medium text-foreground mb-1">Herausforderungen</p>
+            <ul className="space-y-0.5">
               {challengeResults.map((ch) => (
                 <li
                   key={ch.id}
                   className={cn(
-                    "flex items-center gap-2 text-xs",
+                    "flex items-center gap-1.5 text-[11px]",
                     ch.done ? "text-green-600 dark:text-green-400" : "text-muted-foreground",
                   )}
                 >
-                  {ch.done ? <span className="text-green-500">✓</span> : <span className="w-4">○</span>}
+                  {ch.done ? <span className="text-green-500">✓</span> : <span className="w-3.5">○</span>}
                   {ch.label}
                 </li>
               ))}
@@ -901,9 +953,14 @@ export function ChessGame({ onAwardPoints, onClose }: ChessGameProps) {
         )}
       </div>
 
-      {/* Einstellungen (unter Regeln und Herausforderungen) */}
+      {/* Einstellungen (unter Regeln und Herausforderungen) – schließt nach 10 s Inaktivität */}
       {showSettings && (
-        <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-4">
+        <div
+          className="p-4 rounded-xl bg-muted/50 border border-border space-y-4"
+          onMouseDown={resetSettingsAutoClose}
+          onTouchStart={resetSettingsAutoClose}
+          onFocus={resetSettingsAutoClose}
+        >
           <p className="text-sm font-medium text-foreground">Einstellungen</p>
 
           <div>

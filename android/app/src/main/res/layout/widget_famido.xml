@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Header -->
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="12dp"
+        android:text="FamiDo"
+        android:textColor="#f8fafc"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <!-- Child Name -->
+    <TextView
+        android:id="@+id/child_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:text="Anna"
+        android:textColor="#cbd5e1"
+        android:textSize="14sp" />
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+
+        <Button
+            android:id="@+id/btn_add_task"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/widget_button_bg"
+            android:text="✓ Aufgabe"
+            android:textColor="#10b981"
+            android:textSize="12sp"
+            android:minHeight="0dp"
+            android:padding="8dp" />
+
+        <Button
+            android:id="@+id/btn_add_mood"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/widget_button_bg"
+            android:text="😊 Stimmung"
+            android:textColor="#f59e0b"
+            android:textSize="12sp"
+            android:minHeight="0dp"
+            android:padding="8dp" />
+
+    </LinearLayout>
+
+    <!-- Rewards Button -->
+    <Button
+        android:id="@+id/btn_view_rewards"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/widget_button_bg"
+        android:text="⭐ Belohnungen"
+        android:textColor="#ec4899"
+        android:textSize="12sp"
+        android:minHeight="0dp"
+        android:padding="8dp" />
+
+</LinearLayout>
+

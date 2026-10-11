@@ -7,7 +7,9 @@ import { useConnectedDevices, type ConnectedDevice } from "@/hooks/useConnectedD
 import { isSupabaseConfigured } from "@/lib/supabase/client"
 import { fetchCloudPreview, type CloudPreviewResult } from "@/lib/supabase-sync"
 import { pushImportedStateToSupabase } from "@/lib/backup-to-supabase"
-import { triggerSuccess, triggerError, triggerHeavy } from "@/lib/haptics"
+import { triggerSuccess, triggerError, triggerHeavy, triggerLightClick } from "@/lib/haptics"
+import { useDeviceRole } from "@/hooks/useDeviceRole"
+import { PinLogin } from "@/components/admin/pin-login"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -40,7 +42,16 @@ import {
   Users,
   RefreshCw,
   AlertTriangle,
+  UserCircle,
+  Baby,
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 
 function DeviceIcon({ device }: { device: ConnectedDevice }) {
   const os = device.osVersion?.toLowerCase() ?? ""
@@ -78,8 +89,10 @@ function OnlineDot({ isOnline }: { isOnline: boolean }) {
 export function CloudSyncPanel() {
   const { syncId, isLoading: syncIdLoading, setSyncId } = useSyncId()
   const { state } = useFamily()
+  const [deviceRole, setDeviceRole] = useDeviceRole()
   const { devices, isLoading: devicesLoading, removeDevice, disconnectCurrentDevice } =
     useConnectedDevices(syncId)
+  const [showRolePinModal, setShowRolePinModal] = useState(false)
 
   const [linkCode, setLinkCode] = useState("")
   const [copied, setCopied] = useState(false)
@@ -244,6 +257,26 @@ export function CloudSyncPanel() {
     await removeDevice(device.deviceId)
   }
 
+  const adminPin = state.settings?.adminPin ?? "1234"
+  const adminPinEnabled = state.settings?.adminPinEnabled ?? false
+
+  const handleSetRoleParent = () => {
+    if (adminPinEnabled) {
+      setShowRolePinModal(true)
+    } else {
+      void setDeviceRole("parent").then(() => void triggerLightClick())
+    }
+  }
+
+  const handleRolePinSuccess = () => {
+    setShowRolePinModal(false)
+    void setDeviceRole("parent").then(() => void triggerLightClick())
+  }
+
+  const handleSetRoleChild = () => {
+    void setDeviceRole("child").then(() => void triggerLightClick())
+  }
+
   const taskCount = state.tasks.filter((t) => t.isActive !== false).length
   const rewardCount = state.rewards.filter((r) => r.isActive !== false).length
   const childCount = state.children.length
@@ -273,7 +306,58 @@ export function CloudSyncPanel() {
         )}
       </div>
 
-      {/* 2. Daten-Übersicht */}
+      {/* 2. Geräte-Rolle (Phase 18) */}
+      <div className="rounded-xl bg-card border border-border p-4">
+        <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+          <UserCircle className="w-4 h-4" />
+          Dieses Gerät wird genutzt von
+        </p>
+        <div className="flex gap-2">
+          <Button
+            variant={deviceRole === "child" ? "default" : "outline"}
+            size="sm"
+            className="flex-1 gap-2 rounded-xl"
+            onClick={handleSetRoleChild}
+          >
+            <Baby className="w-4 h-4" />
+            Kind
+          </Button>
+          <Button
+            variant={deviceRole === "parent" || deviceRole === "master" ? "default" : "outline"}
+            size="sm"
+            className="flex-1 gap-2 rounded-xl"
+            onClick={handleSetRoleParent}
+          >
+            <UserCircle className="w-4 h-4" />
+            Eltern
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          {deviceRole === "child"
+            ? "Hier siehst du keine offenen Freigaben. Wechsel zu „Eltern“ (mit PIN) um Anträge zu genehmigen."
+            : "Du siehst offene Freigaben auf der Startseite und kannst sie genehmigen."}
+        </p>
+      </div>
+
+      <Dialog open={showRolePinModal} onOpenChange={setShowRolePinModal}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>PIN eingeben</DialogTitle>
+            <DialogDescription>
+              Um dieses Gerät als Eltern-Gerät zu nutzen, bitte die 4-stellige Admin-PIN eingeben.
+            </DialogDescription>
+          </DialogHeader>
+          <PinLogin
+            correctPin={adminPin}
+            onSuccess={handleRolePinSuccess}
+            onCancel={() => setShowRolePinModal(false)}
+            title="Gerät als Eltern"
+            subtitle="PIN eingeben"
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. Daten-Übersicht */}
       <div className="rounded-xl bg-muted/30 border border-border p-3">
         <p className="text-xs font-medium text-muted-foreground mb-2">Synchronisierte Daten</p>
         <div className="grid grid-cols-2 gap-2 text-sm">
@@ -296,7 +380,7 @@ export function CloudSyncPanel() {
         </div>
       </div>
 
-      {/* 3. Verbundene Geräte */}
+      {/* 4. Verbundene Geräte */}
       <div className="rounded-xl bg-card border border-border p-4">
         <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
           <Smartphone className="w-4 h-4" />
@@ -362,7 +446,7 @@ export function CloudSyncPanel() {
         )}
       </div>
 
-      {/* 4. Familien-Code */}
+      {/* 5. Familien-Code */}
       <div className="rounded-xl bg-primary/10 border border-primary/20 p-4">
         <p className="text-sm font-medium text-foreground mb-1">Dein Familien-Code</p>
         <p className="text-2xl font-mono font-bold tracking-widest text-primary mb-2">{syncId}</p>

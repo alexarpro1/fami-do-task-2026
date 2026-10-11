@@ -291,7 +291,7 @@ export async function getHardwareDeviceId(): Promise<string> {
 
   try {
     if (isNativeApp()) {
-      const { Device } = await import("@capacitor/core")
+      const { Device } = await import("@capacitor/device")
       const info = await Device.getId()
       if (info.identifier) {
         deviceId = `hw_${info.identifier}`

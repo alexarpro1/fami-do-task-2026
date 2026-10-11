@@ -50,7 +50,7 @@ export function PetActions({ pet }: PetActionsProps) {
       {/* Food Selection */}
       {showFood && (
         <div className="bg-card rounded-2xl p-4 neu-flat">
-          <h4 className="text-sm font-medium mb-3 text-center">Waehle Futter:</h4>
+          <h4 className="text-sm font-medium mb-3 text-center">Wähle Futter:</h4>
           <div className="grid grid-cols-4 gap-2">
             {FOOD_OPTIONS.map((food) => (
               <button
@@ -74,7 +74,7 @@ export function PetActions({ pet }: PetActionsProps) {
           className={cn("rounded-full px-6", pet.health < 50 && "animate-pulse")}
         >
           <Heart className="w-5 h-5 mr-2" />
-          Fuettern
+          Füttern
         </Button>
 
         <Button onClick={handlePlay} size="lg" variant="outline" className="rounded-full px-6 bg-transparent">
@@ -93,7 +93,7 @@ export function PetActions({ pet }: PetActionsProps) {
 
 function PetMoodIndicator({ mood }: { mood: Pet["mood"] }) {
   const moodData = {
-    happy: { emoji: "😊", label: "Gluecklich", color: "text-success" },
+    happy: { emoji: "😊", label: "Glücklich", color: "text-success" },
     neutral: { emoji: "😐", label: "Neutral", color: "text-warning" },
     sad: { emoji: "😢", label: "Traurig", color: "text-destructive" },
   }

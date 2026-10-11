@@ -110,7 +110,7 @@ export function DayPicker({ selectedDays, onDaysChange, size = "md", showLabels 
       {showLabels && (
         <div className="flex flex-wrap gap-1">
           {days.length === 0 ? (
-            <span className="text-xs text-muted-foreground">Keine Tage ausgewaehlt</span>
+            <span className="text-xs text-muted-foreground">Keine Tage ausgewählt</span>
           ) : days.length === 7 ? (
             <span className="text-xs text-muted-foreground">Jeden Tag</span>
           ) : (

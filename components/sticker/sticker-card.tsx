@@ -19,10 +19,10 @@ const RARITY_COLORS = {
 }
 
 const RARITY_LABELS = {
-  common: "Gewoehnlich",
+  common: "Gewöhnlich",
   rare: "Selten",
   epic: "Episch",
-  legendary: "Legendaer",
+  legendary: "Legendär",
 }
 
 const SIZE_CLASSES = {

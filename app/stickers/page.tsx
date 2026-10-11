@@ -27,8 +27,8 @@ export default function StickersPage() {
       <AppShell>
         <EmptyState
           icon="👤"
-          title="Kein Kind ausgewaehlt"
-          description="Waehle zuerst ein Kind aus."
+          title="Kein Kind ausgewählt"
+          description="Wähle zuerst ein Kind aus."
           action={
             <Link href="/">
               <Button>Zur Startseite</Button>
