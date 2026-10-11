@@ -4,6 +4,7 @@ const PREF_BACK_BUTTON_BLOCK_START = "famiapp_back_button_block_start"
 
 export interface KioskPluginInterface {
   openHomeSettings(): Promise<void>
+  openApplicationDetailsSettings(): Promise<void>
 }
 
 const Kiosk = registerPlugin<KioskPluginInterface>("Kiosk")
@@ -45,4 +46,17 @@ export async function openHomeSettings(): Promise<void> {
     return
   }
   await Kiosk.openHomeSettings()
+}
+
+/**
+ * Öffnet Android „App-Info“ (Berechtigungen etc.) für diese App.
+ * Nur native Android; sonst no-op.
+ */
+export async function openAndroidApplicationDetailsSettings(): Promise<void> {
+  if (typeof window === "undefined") return
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") {
+    console.warn("[Kiosk] openApplicationDetailsSettings ist nur auf Android (native App) verfügbar.")
+    return
+  }
+  await Kiosk.openApplicationDetailsSettings()
 }

@@ -65,6 +65,18 @@ export function isNativeApp(): boolean {
   return !!(window as any).Capacitor
 }
 
+/** Native Capacitor-Shell (Android/iOS APK), nicht Browser/PWA. */
+export function isCapacitorNativeShell(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const cap = (window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor
+    if (cap?.isNativePlatform?.()) return true
+  } catch {
+    /* ignore */
+  }
+  return isNativeApp()
+}
+
 /**
  * Open QR Scanner (Web-based)
  * Works in both browser and native app

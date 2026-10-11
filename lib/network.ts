@@ -5,10 +5,36 @@
 
 export type NetworkStatus = { connected: boolean }
 
+export type WifiOnlineCheck = {
+  ok: boolean
+  isNative: boolean
+  connectionType?: string
+}
+
 /**
  * Aktuellen Verbindungsstatus abfragen.
  * Im Native-Kontext: @capacitor/network; im Browser: navigator.onLine.
  */
+/** Fuer Downloads mit „nur WLAN“: online + auf Native bevorzugt wifi. */
+export async function isWifiOrBrowserOnline(): Promise<WifiOnlineCheck> {
+  if (typeof window === "undefined") {
+    return { ok: false, isNative: false }
+  }
+  try {
+    const { Network } = await import("@capacitor/network")
+    const status = await Network.getStatus()
+    const type = status.connectionType ?? "unknown"
+    const isNative = true
+    if (!status.connected) return { ok: false, isNative, connectionType: type }
+    if (type === "wifi" || type === "ethernet") {
+      return { ok: true, isNative, connectionType: type }
+    }
+    return { ok: false, isNative, connectionType: type }
+  } catch {
+    return { ok: navigator.onLine, isNative: false, connectionType: "browser" }
+  }
+}
+
 export async function getNetworkStatus(): Promise<NetworkStatus> {
   if (typeof window === "undefined") return { connected: false }
   try {

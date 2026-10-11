@@ -6,11 +6,64 @@
 import type { FamilyState } from "@/types"
 import { APP_VERSION } from "@/lib/version"
 import { isNativeApp } from "@/lib/device"
+import { buildDevLogSnapshot } from "@/lib/dev-log"
 
 const PREF_DAILY_BACKUP_ENABLED = "famiapp_daily_backup_enabled"
 const PREF_LAST_DAILY_BACKUP_AT = "famiapp_last_daily_backup_at"
-const BACKUP_FOLDER = "FamiDoBackup"
+export const BACKUP_FOLDER = "FamiDoBackup"
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
+
+async function mkdirBackupFolder(): Promise<void> {
+  const { Filesystem, Directory } = await import("@capacitor/filesystem")
+  try {
+    await Filesystem.mkdir({
+      path: BACKUP_FOLDER,
+      directory: Directory.Documents,
+      recursive: true,
+    })
+  } catch (mkdirErr: unknown) {
+    const msg = mkdirErr instanceof Error ? mkdirErr.message : String(mkdirErr)
+    if (!msg.includes("already exist") && !msg.includes("already exists")) {
+      throw mkdirErr
+    }
+  }
+}
+
+function jsonStringToFilesystemBase64(json: string): string {
+  const bytes = new TextEncoder().encode(json)
+  let binary = ""
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!)
+  return btoa(binary)
+}
+
+/**
+ * Schreibt eine JSON-Datei in Dokumente/FamiDoBackup (nur native App).
+ * Dateiname wird für das Dateisystem bereinigt.
+ */
+export async function writeJsonToFamiDoBackupFolder(
+  json: string,
+  filename: string,
+): Promise<{ ok: boolean; relativePath?: string; savedFilename?: string; error?: string }> {
+  if (!isNativeApp()) return { ok: false, error: "not_native" }
+  const trimmed = filename.trim()
+  const base = trimmed.toLowerCase().endsWith(".json") ? trimmed.slice(0, -5) : trimmed
+  const safeBase = base.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "")
+  const safeName = `${safeBase || "famiapp-backup"}.json`
+  try {
+    await mkdirBackupFolder()
+    const { Filesystem, Directory } = await import("@capacitor/filesystem")
+    const rel = `${BACKUP_FOLDER}/${safeName}`
+    await Filesystem.writeFile({
+      path: rel,
+      data: jsonStringToFilesystemBase64(json),
+      directory: Directory.Documents,
+    })
+    return { ok: true, relativePath: rel, savedFilename: safeName }
+  } catch (e) {
+    console.error("[daily-backup] writeJsonToFamiDoBackupFolder failed:", e)
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
 
 export async function getDailyBackupEnabled(): Promise<boolean> {
   if (!isNativeApp()) return false
@@ -101,30 +154,13 @@ export async function writeDailyBackupIfDue(state: FamilyState): Promise<{ writt
       version: APP_VERSION.full,
       exportedAt: new Date().toISOString(),
       state,
+      developerLog: buildDevLogSnapshot(),
     }
     const json = JSON.stringify(backup, null, 2)
-    // Capacitor Filesystem erwartet base64-kodierte Daten (UTF-8-sicher)
-    const bytes = new TextEncoder().encode(json)
-    let binary = ""
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!)
-    const base64 = btoa(binary)
-
-    try {
-      await Filesystem.mkdir({
-        path: BACKUP_FOLDER,
-        directory: Directory.Documents,
-        recursive: true,
-      })
-    } catch (mkdirErr: unknown) {
-      const msg = mkdirErr instanceof Error ? mkdirErr.message : String(mkdirErr)
-      if (!msg.includes("already exist") && !msg.includes("already exists")) {
-        throw mkdirErr
-      }
-    }
-
+    await mkdirBackupFolder()
     await Filesystem.writeFile({
       path: `${BACKUP_FOLDER}/${filename}`,
-      data: base64,
+      data: jsonStringToFilesystemBase64(json),
       directory: Directory.Documents,
     })
 
