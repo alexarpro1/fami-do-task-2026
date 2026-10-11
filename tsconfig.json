@@ -25,6 +25,18 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@shell/*": [
+        "./shell/*"
+      ],
+      "@features/*": [
+        "./features/*"
+      ],
+      "@ui/*": [
+        "./ui/*"
+      ],
+      "@env/*": [
+        "./env/*"
       ]
     }
   },
@@ -39,6 +51,7 @@
     "node_modules",
     "backups",
     "db",
-    "utils"
+    "utils",
+    "beta-archive"
   ]
 }

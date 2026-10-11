@@ -8,24 +8,40 @@ import type { AdminTab } from "@/types"
 
 const TABS_CONFIG: Record<AdminTab, { label: string; emoji: string }> = {
   children: { label: "Kinder", emoji: "👶" },
+  kontrollzentrale: { label: "Kontrollzentrale", emoji: "🛡️" },
   tasks: { label: "Aufgaben", emoji: "✅" },
   rules: { label: "Regeln", emoji: "⚖️" },
   rewards: { label: "Shop", emoji: "🎁" },
+  videos: { label: "Videos", emoji: "🎬" },
   stats: { label: "Statistik", emoji: "📊" },
   settings: { label: "Einstellungen", emoji: "⚙️" },
 }
 
-const DEFAULT_ORDER: AdminTab[] = ["children", "tasks", "rules", "rewards", "stats", "settings"]
+const DEFAULT_ORDER: AdminTab[] = [
+  "children",
+  "kontrollzentrale",
+  "tasks",
+  "rules",
+  "rewards",
+  "videos",
+  "stats",
+  "settings",
+]
+
+function mergeTabOrder(saved: AdminTab[] | undefined): AdminTab[] {
+  if (!saved?.length) return DEFAULT_ORDER
+  const known = new Set(DEFAULT_ORDER)
+  const ordered = saved.filter((id) => known.has(id))
+  const missing = DEFAULT_ORDER.filter((id) => !ordered.includes(id))
+  return [...ordered, ...missing]
+}
 
 export function TabOrderEditor() {
   const { state, dispatch } = useFamily()
   const [tabOrder, setTabOrder] = useState<AdminTab[]>(DEFAULT_ORDER)
 
   useEffect(() => {
-    const savedOrder = state.settings?.adminTabOrder
-    if (savedOrder && savedOrder.length === 6) {
-      setTabOrder(savedOrder)
-    }
+    setTabOrder(mergeTabOrder(state.settings?.adminTabOrder))
   }, [state.settings?.adminTabOrder])
 
   const moveTab = (index: number, direction: "up" | "down") => {
@@ -47,10 +63,10 @@ export function TabOrderEditor() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Reihenfolge der Admin-Menues anpassen</p>
+        <p className="text-sm text-muted-foreground">Reihenfolge der Admin-Menüs anpassen</p>
         <Button variant="ghost" size="sm" onClick={resetOrder} className="text-xs gap-1">
           <RotateCcw className="w-3 h-3" />
-          Zuruecksetzen
+          Zurücksetzen
         </Button>
       </div>
 

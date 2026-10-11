@@ -3,7 +3,8 @@
 import type React from "react"
 
 import { motion } from "framer-motion"
-import { Users, CheckSquare, Scale, Gift, BarChart3, Settings } from "lucide-react"
+import { Users, CheckSquare, Scale, Gift, BarChart3, Settings, Shield, Film } from "lucide-react"
+import { useTranslation } from "@/hooks/use-translation"
 import type { AdminTab } from "@/types"
 
 interface AdminTabsProps {
@@ -12,56 +13,53 @@ interface AdminTabsProps {
   tabOrder?: AdminTab[]
 }
 
-const TABS_CONFIG: Record<AdminTab, { label: string; emoji: string; icon: React.ReactNode; color: string }> = {
-  children: {
-    label: "Kinder",
-    emoji: "👶",
-    icon: <Users className="w-6 h-6" />,
-    color: "#FF6B6B",
-  },
-  tasks: {
-    label: "Aufgaben",
-    emoji: "✅",
-    icon: <CheckSquare className="w-6 h-6" />,
-    color: "#4ECDC4",
-  },
-  rules: {
-    label: "Regeln",
-    emoji: "⚖️",
-    icon: <Scale className="w-6 h-6" />,
-    color: "#9B59B6",
-  },
-  rewards: {
-    label: "Shop",
-    emoji: "🎁",
-    icon: <Gift className="w-6 h-6" />,
-    color: "#F39C12",
-  },
-  stats: {
-    label: "Statistik",
-    emoji: "📊",
-    icon: <BarChart3 className="w-6 h-6" />,
-    color: "#3498DB",
-  },
-  settings: {
-    label: "Einstellungen",
-    emoji: "⚙️",
-    icon: <Settings className="w-6 h-6" />,
-    color: "#7F8C8D",
-  },
+const TABS_CONFIG: Record<AdminTab, { emoji: string; icon: React.ReactNode; color: string }> = {
+  children: { emoji: "👶", icon: <Users className="w-6 h-6" />, color: "#FF6B6B" },
+  kontrollzentrale: { emoji: "🛡️", icon: <Shield className="w-6 h-6" />, color: "#10B981" },
+  tasks: { emoji: "✅", icon: <CheckSquare className="w-6 h-6" />, color: "#4ECDC4" },
+  rules: { emoji: "⚖️", icon: <Scale className="w-6 h-6" />, color: "#9B59B6" },
+  rewards: { emoji: "🎁", icon: <Gift className="w-6 h-6" />, color: "#F39C12" },
+  videos: { emoji: "🎬", icon: <Film className="w-6 h-6" />, color: "#E11D48" },
+  stats: { emoji: "📊", icon: <BarChart3 className="w-6 h-6" />, color: "#3498DB" },
+  settings: { emoji: "⚙️", icon: <Settings className="w-6 h-6" />, color: "#7F8C8D" },
 }
 
-const DEFAULT_ORDER: AdminTab[] = ["children", "tasks", "rules", "rewards", "stats", "settings"]
+const TAB_LABEL_KEYS: Record<AdminTab, string> = {
+  children: "children",
+  kontrollzentrale: "kontrollzentrale",
+  tasks: "tasks",
+  rules: "rules",
+  rewards: "shop",
+  videos: "videos",
+  stats: "statistics",
+  settings: "settings",
+}
+
+const DEFAULT_ORDER: AdminTab[] = [
+  "children",
+  "kontrollzentrale",
+  "tasks",
+  "rules",
+  "rewards",
+  "videos",
+  "stats",
+  "settings",
+]
 
 export function AdminTabs({ activeTab, onTabChange, tabOrder }: AdminTabsProps) {
+  const { t } = useTranslation()
   const orderedTabs = tabOrder ?? DEFAULT_ORDER
 
+  const getLabel = (tabId: AdminTab) =>
+    (t.adminPanel?.tabs as Record<string, string> | undefined)?.[TAB_LABEL_KEYS[tabId]] ?? tabId
+
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-3">
       {orderedTabs.map((tabId) => {
         const tab = TABS_CONFIG[tabId]
         if (!tab) return null
         const isActive = activeTab === tabId
+        const label = getLabel(tabId)
 
         return (
           <motion.button
@@ -78,7 +76,6 @@ export function AdminTabs({ activeTab, onTabChange, tabOrder }: AdminTabsProps) 
               }
             `}
           >
-            {/* Colored accent bar on top when active */}
             {isActive && (
               <motion.div
                 layoutId="activeTabIndicator"
@@ -88,7 +85,6 @@ export function AdminTabs({ activeTab, onTabChange, tabOrder }: AdminTabsProps) 
               />
             )}
 
-            {/* Icon with colored background circle */}
             <div
               className={`
                 flex items-center justify-center w-10 h-10 rounded-full transition-colors
@@ -102,14 +98,13 @@ export function AdminTabs({ activeTab, onTabChange, tabOrder }: AdminTabsProps) 
               <span className="text-xl">{tab.emoji}</span>
             </div>
 
-            {/* Label */}
             <span
               className={`
               text-xs font-medium text-center leading-tight
               ${isActive ? "text-primary-foreground" : "text-foreground"}
             `}
             >
-              {tab.label}
+              {label}
             </span>
           </motion.button>
         )

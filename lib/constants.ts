@@ -284,7 +284,7 @@ export const THEMES: Theme[] = [
     background: "#f0fff4",
     emoji: "🌿",
     isDark: false,
-    description: "Frische Gruentoene",
+    description: "Frische Grüntöne",
   },
   {
     id: "bubblegum",
@@ -295,7 +295,7 @@ export const THEMES: Theme[] = [
     background: "#fff5f7",
     emoji: "🍬",
     isDark: false,
-    description: "Suesses Pink & Candy",
+    description: "Süßes Pink & Candy",
   },
   {
     id: "aqua",
@@ -306,7 +306,7 @@ export const THEMES: Theme[] = [
     background: "#f0f9ff",
     emoji: "💧",
     isDark: false,
-    description: "Klares Blau & Tuerkis",
+    description: "Klares Blau & Türkis",
   },
   // Dark Themes
   {
@@ -340,7 +340,7 @@ export const THEMES: Theme[] = [
     background: "#0f1a14",
     emoji: "🌲",
     isDark: true,
-    description: "Tiefgruen & Erdtoene",
+    description: "Tiefgrün & Erdtöne",
   },
   {
     id: "cosmic",
@@ -390,16 +390,16 @@ export const PET_EVOLUTION_XP = {
 
 // Level System definitions
 export const LEVEL_THRESHOLDS = [
-  { level: 1, minPoints: 0, title: "Anfaenger", emoji: "🌱" },
+  { level: 1, minPoints: 0, title: "Anfänger", emoji: "🌱" },
   { level: 2, minPoints: 100, title: "Entdecker", emoji: "🔍" },
   { level: 3, minPoints: 250, title: "Helfer", emoji: "🤝" },
-  { level: 4, minPoints: 500, title: "Fleissig", emoji: "⭐" },
+  { level: 4, minPoints: 500, title: "Fleißig", emoji: "⭐" },
   { level: 5, minPoints: 1000, title: "Champion", emoji: "🏆" },
   { level: 6, minPoints: 2000, title: "Superstar", emoji: "🌟" },
   { level: 7, minPoints: 3500, title: "Held", emoji: "🦸" },
   { level: 8, minPoints: 5000, title: "Legende", emoji: "👑" },
   { level: 9, minPoints: 7500, title: "Meister", emoji: "🎯" },
-  { level: 10, minPoints: 10000, title: "Grossmeister", emoji: "💎" },
+  { level: 10, minPoints: 10000, title: "Großmeister", emoji: "💎" },
 ]
 
 export function getLevelInfo(totalPointsEarned: number) {
@@ -444,7 +444,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   weatherEnabled: true,
   moodTrackingEnabled: true,
   schoolTimeEnabled: false,
-  adminTabOrder: ["children", "tasks", "rules", "rewards", "stats", "settings"],
+  adminTabOrder: ["children", "kontrollzentrale", "tasks", "rules", "rewards", "videos", "stats", "settings"],
   notificationsEnabled: false,
   notifyBeforeMinutes: 0,
   favoriteRuleIds: [],
@@ -454,6 +454,27 @@ export const DEFAULT_SETTINGS: AppSettings = {
   dailySummaryEnabled: false,
   dailySummaryTime: "20:00",
   gamesEnabled: true,
+  videosEnabled: true,
+  audioCommunicationEnabled: false,
+  audioJoinPinRequired: true,
+  audioPushToTalkForChild: true,
+  sidebarEnabled: true,
+  lowSpecPerformanceMode: false,
+  requireRuleApprovalGlobal: false,
+  childLocationAutoShareEnabled: true,
+  childLocationAutoShareIntervalMinutes: 30,
+  childLocationLiveEnabled: false,
+  childLocationLiveIntervalSeconds: 15,
+  childLocationLiveManualSendEnabled: true,
+  childLocationGpsFailureCount: 0,
+  childLocationGpsWarningCount: 0,
+  childLocationGpsWarningActive: false,
+  childLocationGpsWarningSticky: false,
+  childLocationLastUnackedSendId: undefined,
+  /** WLAN-Nähe default an (bestehende Builds); Bluetooth separat aus. */
+  nearbyGamesEnabled: true,
+  nearbyBluetoothEnabled: false,
+  nearbyGamesAllowed: { chess: true, dame: true },
 }
 
 // Translations
@@ -471,11 +492,11 @@ export const TRANSLATIONS = {
     points: "Punkte",
     save: "Speichern",
     cancel: "Abbrechen",
-    delete: "Loeschen",
+    delete: "Löschen",
     edit: "Bearbeiten",
-    add: "Hinzufuegen",
-    back: "Zurueck",
-    confirm: "Bestaetigen",
+    add: "Hinzufügen",
+    back: "Zurück",
+    confirm: "Bestätigen",
     // Tasks
     morning: "Morgen",
     evening: "Abend",
@@ -488,18 +509,18 @@ export const TRANSLATIONS = {
     moodGood: "Gut",
     moodOkay: "Okay",
     moodSad: "Traurig",
-    moodAngry: "Wuetend",
+    moodAngry: "Wütend",
     howAreYou: "Wie geht es dir heute?",
     // Weather
     sunny: "Sonnig",
-    cloudy: "Bewoelkt",
+    cloudy: "Bewölkt",
     rainy: "Regnerisch",
     snowy: "Schnee",
     stormy: "Gewitter",
     windy: "Windig",
     // Pet
-    feedPet: "Fuettern",
-    petHappy: "Gluecklich",
+    feedPet: "Füttern",
+    petHappy: "Glücklich",
     petNeutral: "Neutral",
     petSad: "Traurig",
     // Admin
@@ -735,10 +756,10 @@ export const TRANSLATIONS = {
 export const WEATHER_CLOTHING_TIPS = {
   de: {
     sunny: "Sonnencreme und Sonnenbrille nicht vergessen!",
-    cloudy: "Eine leichte Jacke koennte nuetzlich sein.",
+    cloudy: "Eine leichte Jacke könnte nützlich sein.",
     rainy: "Regenjacke und Regenschirm mitnehmen!",
-    snowy: "Warm anziehen! Muetze, Schal und Handschuhe.",
-    stormy: "Besser drinnen bleiben wenn moeglich.",
+    snowy: "Warm anziehen! Mütze, Schal und Handschuhe.",
+    stormy: "Besser drinnen bleiben wenn möglich.",
     windy: "Eine winddichte Jacke anziehen!",
   },
   en: {
@@ -794,7 +815,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   // Task Achievements
   {
     id: "tasks-10",
-    name: "Fleissige Biene",
+    name: "Fleißige Biene",
     description: "10 Aufgaben erledigt",
     emoji: "🐝",
     category: "tasks",
@@ -841,7 +862,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "points-500",
-    name: "Punkte-Jaeger",
+    name: "Punkte-Jäger",
     description: "500 Punkte gesammelt",
     emoji: "🌟",
     category: "points",
@@ -850,7 +871,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "points-1000",
-    name: "Punkte-Koenig",
+    name: "Punkte-König",
     description: "1000 Punkte gesammelt",
     emoji: "👸",
     category: "points",
@@ -908,7 +929,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: "early-bird",
-    name: "Fruehaufsteher",
+    name: "Frühaufsteher",
     description: "Aufgabe vor 7 Uhr erledigt",
     emoji: "🌅",
     category: "special",

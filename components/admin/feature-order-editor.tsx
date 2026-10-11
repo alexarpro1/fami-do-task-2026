@@ -6,6 +6,7 @@ import { useFamily } from "@/context/family-context"
 export const DEFAULT_FEATURE_ORDER: string[] = [
   "soundEnabled",
   "animationsEnabled",
+  "lowSpecPerformanceMode",
   "showConfetti",
   "petSystemEnabled",
   "stickerSystemEnabled",
@@ -14,11 +15,15 @@ export const DEFAULT_FEATURE_ORDER: string[] = [
   "shopEnabled",
   "profileEnabled",
   "gamesEnabled",
+  "videosEnabled",
+  "audioCommunicationEnabled",
+  "sidebarEnabled",
 ]
 
 const FEATURE_LABELS: Record<string, string> = {
   soundEnabled: "Sound-Effekte",
   animationsEnabled: "Animationen",
+  lowSpecPerformanceMode: "Sanfter Modus (alte Geräte)",
   showConfetti: "Konfetti-Effekte",
   petSystemEnabled: "Haustier-System",
   stickerSystemEnabled: "Sticker-Album",
@@ -27,6 +32,9 @@ const FEATURE_LABELS: Record<string, string> = {
   shopEnabled: "Shop / Belohnungen",
   profileEnabled: "Profil-Seite",
   gamesEnabled: "Spiele (Minigames)",
+  videosEnabled: "Videos",
+  audioCommunicationEnabled: "Audio-Kommunikation",
+  sidebarEnabled: "Sidebar (Desktop)",
 }
 
 /** Hook für Reihenfolge + Verschieben; für zusammengeführte Zeilen (Reihenfolge + Toggle) im Panel. */

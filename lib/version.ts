@@ -2,14 +2,21 @@
 // This file is automatically updated on each deployment/build
 
 /** Fallback-URL für App-Update (Google-Drive-Ordner), wenn Supabase keine download_url liefert. */
+const appUpdateUrlFromEnv =
+  typeof process !== "undefined" ? process.env.NEXT_PUBLIC_APP_UPDATE_DOWNLOAD_URL : undefined
+
 export const APP_UPDATE_DOWNLOAD_URL =
+  appUpdateUrlFromEnv?.trim() ||
   "https://drive.google.com/drive/folders/1NytAIHGZPlLOZHUp8qw1Aa3WqCCngzKl?usp=sharing"
+
+/** Angezeigter Entwickler / Publisher der App. */
+export const APP_DEVELOPER = "Fenix Web"
 
 export const APP_VERSION = {
   major: 2,
   minor: 6,
-  patch: 0,
-  build: 29,
+  patch: 1,
+  build: 30,
 
   get full(): string {
     return `${this.major}.${this.minor}.${this.patch}.${this.build}`
@@ -51,7 +58,7 @@ export function parseVersionString(s: string): ParsedVersion | null {
 
 // Build info
 export const BUILD_INFO = {
-  timestamp: new Date("2026-02-28T02:48:43.510Z"),
+  timestamp: new Date("2026-10-11T06:26:40.681Z"),
   get formatted(): string {
     return this.timestamp.toLocaleDateString("de-DE", {
       day: "2-digit",

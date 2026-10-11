@@ -2,6 +2,9 @@
 // FAMIAPP - CORE TYPE DEFINITIONS
 // ============================================
 
+/** Schulklasse 1–5 für Lernspiele (Mathe, Wörter, Memory). */
+export type SchoolGrade = 1 | 2 | 3 | 4 | 5
+
 // Child Profile
 export interface Child {
   id: string
@@ -12,6 +15,8 @@ export interface Child {
   points: number
   totalPointsEarned: number
   createdAt: string
+  /** Klassenstufe für Lernspiel-Curriculum; Default 1 wenn fehlend. */
+  schoolGrade?: SchoolGrade
   level?: number // Current level based on totalPointsEarned
   wishlistRewardIds?: string[] // Reward IDs on wishlist (max 3)
   currentStreak?: number // Days in a row with completed tasks
@@ -20,6 +25,48 @@ export interface Child {
   achievements?: string[] // Achievement IDs unlocked
   /** Goldmünzen aus Minispielen (separat vom Punktesystem). */
   gameGoldCoins?: number
+  /**
+   * Zuletzt geteilter Standort (Kind-Gerät → Eltern über Family-State / Sync).
+   * Keine Live-Tracking-Garantie; nur manuell oder bei Aktion erfasst.
+   */
+  lastSharedLocation?: {
+    lat: number
+    lon: number
+    /** Genauigkeit in Metern, falls vom System geliefert */
+    accuracyM?: number
+    /** Zeitpunkt der Sendung auf dem Kind-Gerät. */
+    sentAt?: string
+    /** Quelle der Sendung (Intervall/Live/manuell). */
+    source?: "interval" | "live" | "manual"
+    /** Eindeutige Sendung vom Kind, wartet auf Empfangsbestätigung (ACK). */
+    sendId?: string
+    /** Empfangsbestätigung von Eltern-/Master-Gerät für genau diese Sendung. */
+    ackedAt?: string
+    ackedByRole?: "parent" | "master"
+    ackedByDeviceId?: string
+    recordedAt: string
+  }
+  /** Historie automatisch bestätigter Standort-Sendungen (ACK) durch Eltern/Master. */
+  locationAckHistory?: Array<{
+    sendId: string
+    ackedAt: string
+    ackedByRole: "parent" | "master"
+    ackedByDeviceId?: string
+    auto: true
+  }>
+  /** Automatische Positionshistorie (rolling) der letzten 30 Tage. */
+  locationHistory?: Array<{
+    sendId?: string
+    lat: number
+    lon: number
+    accuracyM?: number
+    recordedAt: string
+    sentAt?: string
+    source?: "interval" | "live" | "manual"
+    ackedAt?: string
+    ackedByRole?: "parent" | "master"
+    ackedByDeviceId?: string
+  }>
 }
 
 // Task Categories
@@ -44,6 +91,12 @@ export interface Task {
   usageCount?: number // total times completed
   startTime?: string // "06:30" format - task available from this time
   endTime?: string // "09:00" format - task available until this time
+  /**
+   * Vor Start des Zeitfensters in der Liste zeigen (als „Geplant“).
+   * false = erst sichtbar, wenn das Zeitfenster beginnt.
+   * Default / undefined = true (Abwärtskompatibilität).
+   */
+  showBeforeTimeWindow?: boolean
   repeatInterval?: number // Minutes between repetitions (e.g., 120 = 2 hours)
   timerOptions?: {
     showMiniTimer: boolean
@@ -71,6 +124,7 @@ export interface Reward {
   emoji: string
   category: "experience" | "privilege" | "item" | "special"
   isActive: boolean
+  order?: number // Sortierreihenfolge in der Admin-Liste
   stock?: number // undefined = unlimited
   dailyLimit?: number // max purchases per day
   repeatInterval?: number // Minutes between purchases (e.g., 60 = 1 hour)
@@ -100,6 +154,8 @@ export interface Rule {
   isActive: boolean
   order?: number
   usageCount?: number // total times applied
+  /** Phase 18: Wenn true, Anwendung erzeugt status "pending", Punkte erst nach Freigabe. */
+  requiresApproval?: boolean
 }
 
 // Rule Application Record
@@ -110,6 +166,8 @@ export interface RuleApplication {
   appliedAt: string
   pointsChanged: number
   note?: string
+  /** Phase 18: pending = wartet auf Freigabe, approved = Punkte gutgeschrieben, rejected = abgelehnt. */
+  status?: "pending" | "approved" | "rejected"
 }
 
 // Virtual Pet
@@ -167,7 +225,15 @@ export interface Theme {
 }
 
 // Admin Tab Type
-export type AdminTab = "children" | "tasks" | "rules" | "rewards" | "stats" | "settings"
+export type AdminTab =
+  | "children"
+  | "kontrollzentrale"
+  | "tasks"
+  | "rules"
+  | "rewards"
+  | "videos"
+  | "stats"
+  | "settings"
 
 // App Settings
 export interface AppSettings {
@@ -201,10 +267,66 @@ export interface AppSettings {
   childOrder?: string[]
   /** Show Spiele (Minigames) in navigation and on home. */
   gamesEnabled?: boolean
+  /** Videos-Galerie in Navigation freischalten (Cloud-Videos + Offline-MP4). */
+  videosEnabled?: boolean
+  /** Audio-Raum in Navigation und als Funktion freischalten. */
+  audioCommunicationEnabled?: boolean
+  /** Vor Beitritt in Audio-Raum Admin-PIN verlangen. */
+  audioJoinPinRequired?: boolean
+  /** Kind-Geräte sprechen nur per Push-to-talk. */
+  audioPushToTalkForChild?: boolean
+  /** Desktop-Sidebar anzeigen (Navigation links auf großen Geräten). */
+  sidebarEnabled?: boolean
+  /**
+   * Schwache Geräte: weniger Blur/Verlauf, reduzierte Motion, kein Pull-to-Refresh.
+   * Wird zusätzlich bei wenig CPU/RAM automatisch empfohlen (siehe lib/fdt-low-spec.ts).
+   */
+  lowSpecPerformanceMode?: boolean
   /** Display order of game IDs on Spiele page (reaction, memory, tap, color, chess, dame). */
   gamesOrder?: string[]
   /** Display order of feature toggle keys in Einstellungen → Funktionen. */
   featureOrder?: string[]
+  /** Phase 18: Globaler Schalter "Regel-Freigaben aktivieren" (Freigabe durch Eltern). */
+  requireRuleApprovalGlobal?: boolean
+  /**
+   * Kind-Gerät: Standort automatisch in den Family-State schreiben (Sync zu Eltern).
+   * Läuft nur bei Geräterolle „Kind“ und solange die App aktiv ist (kein garantiertes Hintergrund-GPS).
+   */
+  childLocationAutoShareEnabled?: boolean
+  /** Intervall in Minuten (5–180), Standard 30 */
+  childLocationAutoShareIntervalMinutes?: number
+  /** Live-Standort aktivieren (schnelles Intervall bei aktiver App). */
+  childLocationLiveEnabled?: boolean
+  /** Live-Intervall in Sekunden (5-120), Standard 15. */
+  childLocationLiveIntervalSeconds?: number
+  /** Manueller "Jetzt senden"-Button im Kind-Bereich erlauben. */
+  childLocationLiveManualSendEnabled?: boolean
+  /**
+   * Interner Sicherheitsstatus für Standort-Auto-Share (Kind-Gerät).
+   * Wird gesetzt, wenn Senden wiederholt fehlschlägt und erinnert an GPS-Reaktivierung.
+   */
+  childLocationGpsFailureCount?: number
+  childLocationGpsWarningCount?: number
+  childLocationGpsWarningActive?: boolean
+  childLocationGpsWarningSticky?: boolean
+  childLocationGpsLastFailureAt?: string
+  /** Zuletzt als "ohne ACK" gewertete Sendung, damit pro Sendung nur 1x gezählt wird. */
+  childLocationLastUnackedSendId?: string
+  /**
+   * Nähe-Mehrspieler („Zu zweit“) global freigeben.
+   * Default true: bestehende WLAN-Nähe bleibt nutzbar; Admin kann abschalten.
+   */
+  nearbyGamesEnabled?: boolean
+  /**
+   * Bluetooth-Transport für Nähe-Spiele freigeben (zusätzlich zu nearbyGamesEnabled).
+   * Default false: Bluetooth nur nach expliziter Admin-Freigabe.
+   */
+  nearbyBluetoothEnabled?: boolean
+  /** Optional pro Spiel (chess/dame); fehlender Key = erlaubt, wenn Master an. */
+  nearbyGamesAllowed?: {
+    chess?: boolean
+    dame?: boolean
+  }
 }
 
 // Complete Family State
@@ -258,7 +380,9 @@ export type FamilyAction =
   | { type: "ADD_RULE"; payload: Omit<Rule, "id"> }
   | { type: "UPDATE_RULE"; payload: { id: string; updates: Partial<Rule> } }
   | { type: "DELETE_RULE"; payload: string }
-  | { type: "APPLY_RULE"; payload: { ruleId: string; childId: string; note?: string } }
+  | { type: "APPLY_RULE"; payload: { ruleId: string; childId: string; note?: string; ruleApplicationId?: string } }
+  | { type: "APPROVE_RULE_APPLICATION"; payload: { applicationId: string } }
+  | { type: "REJECT_RULE_APPLICATION"; payload: { applicationId: string } }
   // Pet Actions
   | { type: "CREATE_PET"; payload: { childId: string; name: string; type: Pet["type"] } }
   | { type: "FEED_PET"; payload: { petId: string } }
@@ -291,6 +415,19 @@ export interface WeatherData {
   lastUpdated: string
   /** Anzeigename des Standorts (z. B. Stadt) */
   locationName?: string
+  /** Tages-Minimum (°C) – Open-Meteo daily */
+  tempMin?: number
+  /** Tages-Maximum (°C) – Open-Meteo daily */
+  tempMax?: number
+  /** Temperatur ca. 08:00 lokal (°C) */
+  tempMorning?: number
+  /** Temperatur ca. 16:00 lokal (°C) */
+  tempAfternoon?: number
+  humidity?: number
+  windSpeed?: number
+  /** Verwendete Koordinaten (für Transparenz / Debug) */
+  lat?: number
+  lon?: number
 }
 
 // School Time Settings per Child
@@ -315,3 +452,6 @@ export interface Achievement {
 
 export type RuleCategory = "behavior" | "homework" | "chores" | "social" | "custom"
 export type RewardCategory = "experience" | "privilege" | "item" | "special"
+
+// Videos (separates Modul – Re-Export ohne Breaking Changes)
+export type { VideoItem, VideoType, VideoSource } from "./video"

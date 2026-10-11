@@ -14,9 +14,8 @@ if not defined VERSION set "VERSION=V0.0.0.0"
 echo [FamiApp] Version: !VERSION!
 echo.
 
-REM 0. Build-Ordner bereinigen (vermindert "Unable to delete directory")
-echo [FamiApp] Build-Ordner bereinigen ...
-node scripts\clean-android-builds.js 2>nul
+REM Build-Ordner wird NICHT bereinigt, damit bestehende versionierte APK-Builds erhalten bleiben.
+REM Bei "Unable to delete directory": vorher manuell "npm run android:clean" ausfuehren.
 echo.
 
 REM 1. Web-Build + Capacitor Sync
@@ -52,6 +51,10 @@ set "APK_DST=!APK_DIR!\FamiApp-!VERSION!.apk"
 
 if not exist "!APK_DIR!" mkdir "!APK_DIR!"
 copy /Y "!APK_SRC!" "!APK_DST!" >nul
+
+echo.
+echo [FamiApp] Optional: Google Drive ^(FAMIDO_DRIVE_FOLDER / rclone^) ...
+call node scripts\sync-apk-to-drive.js
 
 echo.
 echo ============================================================
